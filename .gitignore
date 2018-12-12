@@ -1,0 +1,11 @@
+# shell file
+receiveeos/add_permission.sh
+receiveeos/compile.sh
+receiveeos/get_table.sh
+receiveeos/set_contract.sh
+receiveeos/transfer.sh
+receiveeos/withdraw.sh
+
+# log file
+receiveeos/nodeos.log
+

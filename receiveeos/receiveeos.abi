@@ -1,0 +1,89 @@
+{
+  "version": "eosio::abi/1.0",
+  "structs": [
+    {
+      "name": "balance",
+      "base": "",
+      "fields": [
+        {
+          "name": "sender",
+          "type": "name"
+        },
+        {
+          "name": "amount",
+          "type": "uint64"
+        }
+      ]
+    },
+    {
+      "name": "transfer_args",
+      "base": "",
+      "fields": [
+        {
+          "name": "from",
+          "type": "name"
+        },
+        {
+          "name": "to",
+          "type": "name"
+        },
+        {
+          "name": "quantity",
+          "type": "asset"
+        },
+        {
+          "name": "memo",
+          "type": "string"
+        }
+      ]
+    },
+    {
+      "name": "transfereos",
+      "base": "",
+      "fields": []
+    },
+    {
+      "name": "withdraw",
+      "base": "",
+      "fields": [
+        {
+          "name": "user",
+          "type": "name"
+        },
+        {
+          "name": "quantity",
+          "type": "asset"
+        }
+      ]
+    }
+  ],
+  "types": [],
+  "actions": [
+    {
+      "name": "transfereos",
+      "type": "transfereos",
+      "ricardian_contract": ""
+    },
+    {
+      "name": "withdraw",
+      "type": "withdraw",
+      "ricardian_contract": ""
+    }
+  ],
+  "tables": [
+    {
+      "name": "balance",
+      "type": "balance",
+      "index_type": "i64",
+      "key_names": [
+        "sender"
+      ],
+      "key_types": [
+        "name"
+      ]
+    }
+  ],
+  "ricardian_clauses": [],
+  "error_messages": [],
+  "abi_extensions": []
+}
