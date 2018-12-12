@@ -2,7 +2,7 @@
 
 ## Environment
 
-set up: [https://developers.eos.io/eosio-home/docs/introduction](EOSIO Developer Portal)
+set up: [EOSIO Developer Portal](https://developers.eos.io/eosio-home/docs/introduction)
 
 ubuntu 16.04 LTS
 
