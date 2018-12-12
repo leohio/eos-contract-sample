@@ -1,11 +1,11 @@
-# ReceiveEOS
+# receiveeos
 
 This contract is able to deposit and withdraw EOS token.
 
-## attention
+## Attention
 
 This contract is a simple contract
-for detection and inline call of an action in an external account. 
+for detection and inline call of an action in an external account.
 Please don't use as it is,
 because **some vulnerability exist** in it.
 
@@ -13,9 +13,9 @@ For example, the contract account deployed this contract is
 able to transfer its EOS token to another account freely.
 So `withdraw` action may fail despite that your balance is not zero.
 
-## usage
+## Usage
 
-### check cleos available
+### Check Cleos Available
 
 ```
 cleos --help
@@ -24,13 +24,13 @@ cleos --help
 > ...
 ```
 
-### set kylin testnet endpoint
+### Set Kylin Testnet Endpoint
 
 ```
 alias cleos='cleos -u https://api-kylin.eosasia.one:443'
 ```
 
-### check connection
+### Check Connection
 
 ```
 cleos get info
@@ -40,7 +40,9 @@ cleos get info
 > ...
 ```
 
-### check your account
+### Check Your Account
+
+Please replace `accountname1` your account.
 
 ```
 cleos get account accountname1
@@ -52,14 +54,11 @@ cleos get account accountname1
 >      total:           755.6145 EOS
 ```
 
-### transfer EOS token to contract
+### Transfer EOS Token to Contract
 
 `accountname1` deposit 0.1000 EOS.
 
-NOTE
-
 `receiveeos` contract is deployed in `toycashio123` account.
-Please replace `accountname1` your account.
 
 ```
 cleos push action eosio.token transfer \
@@ -93,7 +92,7 @@ cleos get account accountname1
 >      total:           755.5145 EOS
 ```
 
-### withdraw EOS token from contract
+### Withdraw EOS Token from Contract
 
 `accountname1` withdraw 0.1000 EOS.
 
