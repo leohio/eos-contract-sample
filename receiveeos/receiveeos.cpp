@@ -28,9 +28,8 @@ class receiveeos : public eosio::contract {
         /// amount which sender account transfer to eosio.token contract
         struct balance {
             name sender;
-            uint64_t amount;
+            asset quantity;
             uint64_t primary_key() const { return sender.value; }
-            uint64_t get_amount() const { return amount; }
         };
 
         /// define table named "balance"
@@ -57,30 +56,32 @@ class receiveeos : public eosio::contract {
             /// This contract account do not have balance record,
             /// so `from_account != get_self()` is needed.
             if ( to_account == get_self() && from_account != get_self() ) {
-                /// receive only EOS token
-                // eosio_assert(
-                //     transfer_data.quantity.symbol == "EOS",
-                //     "be able to receive only EOS"
-                // );
-
-                uint64_t amount = static_cast<uint64_t>( transfer_data.quantity.amount );
+                asset quantity = transfer_data.quantity;
 
                 auto balance_data = bt.find( from_account.value );
 
                 if( balance_data == bt.end() ) {
                     bt.emplace( get_self(), [&]( auto& data ) {
                         data.sender = from_account;
-                        data.amount = amount;
+                        data.quantity = quantity;
                     });
                 } else {
+                    asset deposit = balance_data->quantity;
+
                     eosio_assert(
-                        balance_data->amount + amount > balance_data->amount,
+                        deposit.symbol == quantity.symbol,
+                        "different symbol or precision mismatch from your token deposited"
+                    );
+
+                    eosio_assert(
+                        deposit.amount + quantity.amount > deposit.amount,
                         "since occurred overflow, revert the state"
                     );
+                    
                     /// modify the record of balance_data
                     /// ram payer is this contract account
                     bt.modify( balance_data, get_self(), [&]( auto& data ) {
-                        data.amount = balance_data->amount + amount;
+                        data.quantity = deposit + quantity;
                     });
                 }
             }
@@ -94,26 +95,25 @@ class receiveeos : public eosio::contract {
                 "do not exist your data"
             );
 
-            // eosio_assert(
-            //     quantity.symbol == "EOS",
-            //     "be able to receive only EOS"
-            // );
-
-            uint64_t current_balance = balance_data->amount;
-            uint64_t amount = quantity.amount;
+            asset deposit = balance_data->quantity;
 
             eosio_assert(
-                current_balance >= amount,
+                deposit.symbol == quantity.symbol,
+                "different symbol or precision mismatch from your token deposited"
+            );
+
+            eosio_assert(
+                deposit.amount >= quantity.amount,
                 "exceed the withdrawable amount"
             );
 
-            if ( current_balance == amount ) {
+            if ( deposit.amount == quantity.amount ) {
                 bt.erase( balance_data );
-            } else if ( current_balance > amount ) {
+            } else if ( deposit.amount > quantity.amount ) {
                 /// modify the record of balance_data
                 /// ram payer is this contract account
                 bt.modify( balance_data, get_self(), [&]( auto& data ) {
-                    data.amount = current_balance - amount;
+                    data.quantity = deposit - quantity;
                 });
             }
 
@@ -141,7 +141,7 @@ extern "C" {
             }
         } else if ( code == receiver ) {
             switch( action ) {
-               EOSIO_DISPATCH_HELPER( receiveeos, (withdraw) )
+               EOSIO_DISPATCH_HELPER( receiveeos, (withdraw) );
             }
         }
     }

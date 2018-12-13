@@ -10,8 +10,8 @@
           "type": "name"
         },
         {
-          "name": "amount",
-          "type": "uint64"
+          "name": "quantity",
+          "type": "asset"
         }
       ]
     },
