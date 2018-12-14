@@ -125,3 +125,46 @@ cleos get account accountname1
 >      unstaking:         0.0000 EOS
 >      total:           755.6145 EOS
 ```
+
+## Deploy Yourself
+
+### Set Account Permission
+
+add "eosio.code" permission to your contract account
+
+Replace `yourcontract` into your contract account name and
+`EOS_PUBLIC_KEY` into a EOS public key which you know corresponding private key.
+
+```
+cleos set account permission yourcontract active '{
+    "threshold": 1,
+    "keys": [{
+        "key": "EOS_PUBLIC_KEY",
+        "weight": 1
+    }],
+    "accounts": [{
+        "permission": {
+            "actor": "yourcontract",
+            "permission": "eosio.code"
+        },
+        "weight": 1
+    }]
+}' -p yourcontract@owner
+```
+
+### Compile
+
+compile cpp into wasm
+
+```
+eosio-cpp -o receiveeos.wasm receiveeos.cpp
+```
+
+### Set Contract
+
+Replace `PATH_TO_THIS_DIRECTORY` into absolute pass to current directory.
+Note that you do not change this directory name `receiveeos` into another one.
+
+```
+cleos set contract yourcontract PATH_TO_THIS_DIRECTORY/receiveeos/ -p yourcontract@active
+```

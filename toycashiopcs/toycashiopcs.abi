@@ -1,0 +1,513 @@
+{
+    "version": "eosio::abi/1.0",
+    "structs": [
+        {
+            "name": "account",
+            "base": "",
+            "fields": [
+                {
+                    "name": "balance",
+                    "type": "asset"
+                }
+            ]
+        },
+        {
+            "name": "balance",
+            "base": "",
+            "fields": [
+                {
+                    "name": "username",
+                    "type": "name"
+                },
+                {
+                    "name": "quantity",
+                    "type": "asset"
+                }
+            ]
+        },
+        {
+            "name": "burn",
+            "base": "",
+            "fields": [
+                {
+                    "name": "owner",
+                    "type": "name"
+                },
+                {
+                    "name": "token_id",
+                    "type": "uint64"
+                }
+            ]
+        },
+        {
+            "name": "create",
+            "base": "",
+            "fields": [
+                {
+                    "name": "issuer",
+                    "type": "name"
+                },
+                {
+                    "name": "sym",
+                    "type": "string"
+                }
+            ]
+        },
+        {
+            "name": "issue",
+            "base": "",
+            "fields": [
+                {
+                    "name": "to",
+                    "type": "name"
+                },
+                {
+                    "name": "quantity",
+                    "type": "asset"
+                },
+                {
+                    "name": "subkeys",
+                    "type": "public_key[]"
+                },
+                {
+                    "name": "tkn_name",
+                    "type": "string"
+                },
+                {
+                    "name": "memo",
+                    "type": "string"
+                }
+            ]
+        },
+        {
+            "name": "stats",
+            "base": "",
+            "fields": [
+                {
+                    "name": "supply",
+                    "type": "asset"
+                },
+                {
+                    "name": "issuer",
+                    "type": "name"
+                }
+            ]
+        },
+        {
+            "name": "token",
+            "base": "",
+            "fields": [
+                {
+                    "name": "id",
+                    "type": "uint64"
+                },
+                {
+                    "name": "subkey",
+                    "type": "public_key"
+                },
+                {
+                    "name": "owner",
+                    "type": "name"
+                },
+                {
+                    "name": "value",
+                    "type": "asset"
+                },
+                {
+                    "name": "tokenName",
+                    "type": "string"
+                },
+                {
+                    "name": "active",
+                    "type": "uint8"
+                }
+            ]
+        },
+        {
+            "name": "bid",
+            "base": "",
+            "fields": [
+                {
+                    "name": "id",
+                    "type": "uint64"
+                },
+                {
+                    "name": "price",
+                    "type": "asset"
+                },
+                {
+                    "name": "owner",
+                    "type": "name"
+                },
+                {
+                    "name": "value",
+                    "type": "asset"
+                }
+            ]
+        },
+        {
+            "name": "pvcount",
+            "base": "",
+            "fields": [
+                {
+                    "name": "id",
+                    "type": "uint64"
+                },
+                {
+                    "name": "symbol",
+                    "type": "string"
+                },
+                {
+                    "name": "uri",
+                    "type": "string"
+                },
+                {
+                    "name": "count",
+                    "type": "uint64"
+                }
+            ]
+        }
+        {
+            "name": "transfer",
+            "base": "",
+            "fields": [
+                {
+                    "name": "from",
+                    "type": "name"
+                },
+                {
+                    "name": "to",
+                    "type": "name"
+                },
+                {
+                    "name": "quantity",
+                    "type": "asset"
+                },
+                {
+                    "name": "memo",
+                    "type": "string"
+                },
+            ]
+        },
+        {
+            "name": "transferid",
+            "base": "",
+            "fields": [
+                {
+                    "name": "from",
+                    "type": "name"
+                },
+                {
+                    "name": "to",
+                    "type": "name"
+                },
+                {
+                    "name": "id",
+                    "type": "uint64"
+                },
+                {
+                    "name": "memo",
+                    "type": "string"
+                },
+            ]
+        },
+        {
+            "name": "setrampayer",
+            "base": "",
+            "fields": [
+                {
+                    "name": "payer",
+                    "type": "name"
+                },
+                {
+                    "name": "token_id",
+                    "type": "uint64"
+                }
+            ]
+        },
+        {
+            "name": "refleshkey",
+            "base": "",
+            "fields": [
+                {
+                    "name": "owner",
+                    "type": "name"
+                },
+                {
+                    "name": "token_id",
+                    "type": "uint64"
+                },
+                {
+                    "name": "subkey",
+                    "type": "public_key"
+                }
+            ]
+        },
+        {
+            "name": "lock",
+            "base": "",
+            "fields": [
+                {
+                    "name": "accuser",
+                    "type": "name"
+                },
+                {
+                    "name": "token_id",
+                    "type": "uint64"
+                },
+                {
+                    "name": "signature",
+                    "type": "string"
+                }
+            ]
+        },
+        {
+            "name": "servebid",
+            "base": "",
+            "fields": [
+                {
+                    "name": "owner",
+                    "type": "name"
+                },
+                {
+                    "name": "token_id",
+                    "type": "uint64"
+                },
+                {
+                    "name": "price",
+                    "type": "asset"
+                },
+                {
+                    "name": "memo",
+                    "type": "string"
+                }
+            ]
+        },
+        {
+            "name": "cancelbid",
+            "base": "",
+            "fields": [
+                {
+                    "name": "owner",
+                    "type": "name"
+                },
+                {
+                    "name": "token_id",
+                    "type": "uint64"
+                }
+            ]
+        },
+        {
+            "name": "buy",
+            "base": "",
+            "fields": [
+                {
+                    "name": "buyer",
+                    "type": "name"
+                },
+                {
+                    "name": "token_id",
+                    "type": "uint64"
+                },
+                {
+                    "name": "price",
+                    "type": "asset"
+                },
+                {
+                    "name": "memo",
+                    "type": "string"
+                }
+            ]
+        },
+        {
+            "name": "seturi",
+            "base": "",
+            "fields": [
+                {
+                    "name": "owner",
+                    "type": "name"
+                },
+                {
+                    "name": "token_symbol",
+                    "type": "symbol"
+                },
+                {
+                    "name": "uri",
+                    "type": "string"
+                }
+            ]
+        },
+        {
+            "name": "setpvdata",
+            "base": "",
+            "fields": [
+                {
+                    "name": "claimer",
+                    "type": "name"
+                },
+                {
+                    "name": "token_symbol",
+                    "type": "symbol"
+                },
+                {
+                    "name": "uri_id",
+                    "type": "uint64"
+                },
+                {
+                    "name": "count",
+                    "type": "uint64"
+                }
+            ]
+        },
+        {
+            "name": "removepvdata",
+            "base": "",
+            "fields": [
+                {
+                    "name": "uri_id",
+                    "type": "uint64"
+                }
+            ]
+        },
+        {
+            "name": "receive",
+            "base": "",
+            "fields": []
+        }
+    ],
+    "types": [],
+    "actions": [
+        {
+            "name": "burn",
+            "type": "burn",
+            "ricardian_contract": ""
+        },
+        {
+            "name": "buy",
+            "type": "buy",
+            "ricardian_contract": ""
+        },
+        {
+            "name": "cancelbid",
+            "type": "cancelbid",
+            "ricardian_contract": ""
+        },
+        {
+            "name": "create",
+            "type": "create",
+            "ricardian_contract": ""
+        },
+        {
+            "name": "issue",
+            "type": "issue",
+            "ricardian_contract": ""
+        },
+        {
+            "name": "lock",
+            "type": "lock",
+            "ricardian_contract": ""
+        },
+        {
+            "name": "refleshkey",
+            "type": "refleshkey",
+            "ricardian_contract": ""
+        },
+        {
+            "name": "removepvdata",
+            "type": "removepvdata",
+            "ricardian_contract": ""
+        },
+        {
+            "name": "servebid",
+            "type": "servebid",
+            "ricardian_contract": ""
+        },
+        {
+            "name": "setpvdata",
+            "type": "setpvdata",
+            "ricardian_contract": ""
+        },
+        {
+            "name": "setrampayer",
+            "type": "setrampayer",
+            "ricardian_contract": ""
+        },
+        {
+            "name": "seturi",
+            "type": "seturi",
+            "ricardian_contract": ""
+        },
+        {
+            "name": "transfer",
+            "type": "transfer",
+            "ricardian_contract": ""
+        },
+        {
+            "name": "transferid",
+            "type": "transferid",
+            "ricardian_contract": ""
+        }
+    ],
+    "tables": [
+        {
+            "name": "accounts",
+            "type": "account",
+            "index_type": "i64",
+            "key_names": [],
+            "key_types": []
+        },
+        {
+            "name": "balance",
+            "type": "balance",
+            "index_type": "i64",
+            "key_names": [
+                "username"
+            ],
+            "key_types": [
+                "name"
+            ]
+        },
+        {
+            "name": "stat",
+            "type": "stats",
+            "index_type": "i64",
+            "key_names": [],
+            "key_types": []
+        },
+        {
+            "name": "token",
+            "type": "token",
+            "index_type": "i64",
+            "key_names": [
+                "id"
+            ],
+            "key_types": [
+                "uint64"
+            ]
+        },
+        {
+            "name": "bid",
+            "type": "bid",
+            "index_type": "i64",
+            "key_names": [
+                "id"
+            ],
+            "key_types": [
+                "uint64"
+            ]
+        },
+        {
+            "name": "pvcount",
+            "type": "pvcount",
+            "index_type": "i64",
+            "key_names": [
+                "id"
+            ],
+            "key_types": [
+                "uint64"
+            ]
+        }
+    ],
+    "ricardian_clauses": [],
+    "abi_extensions": []
+}

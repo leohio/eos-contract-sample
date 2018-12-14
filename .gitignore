@@ -1,11 +1,11 @@
-# shell file
-receiveeos/add_permission.sh
-receiveeos/compile.sh
-receiveeos/endpoint.txt
-receiveeos/get_table.sh
-receiveeos/set_contract.sh
-receiveeos/transfer.sh
-receiveeos/withdraw.sh
+# receiveeos
 
-# log file
+receiveeos/compile.sh
+receiveeos/set_contract.sh
 receiveeos/nodeos.log
+
+# toycashiopcs
+
+toycashiopcs/compile.sh
+toycashiopcs/set_contract.sh
+toycashiopcs/nodeos.log

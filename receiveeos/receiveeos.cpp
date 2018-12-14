@@ -77,14 +77,24 @@ class receiveeos : public eosio::contract {
                         deposit.amount + quantity.amount > deposit.amount,
                         "since occurred overflow, revert the state"
                     );
-                    
+
                     /// modify the record of balance_data
                     /// ram payer is this contract account
                     bt.modify( balance_data, get_self(), [&]( auto& data ) {
                         data.quantity = deposit + quantity;
                     });
                 }
-            }
+            }/* else if ( from_account == get_self() && to_account != get_self() ) {
+                asset quantity = transfer_data.quantity;
+                symbol token_symbol = quantity.symbol;
+                asset owned_token = ???;
+                asset deposit_sum = ???;
+
+                eosio_assert(
+                    deposit_sum > owned_token - quantity,
+                    "please leave deposit"
+                );
+            }*/
         }
 
         void withdraw( name user, asset quantity ) {
