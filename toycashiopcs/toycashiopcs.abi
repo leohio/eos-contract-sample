@@ -154,12 +154,12 @@
                     "type": "uint64"
                 },
                 {
-                    "name": "symbol",
+                    "name": "uri",
                     "type": "string"
                 },
                 {
-                    "name": "uri",
-                    "type": "string"
+                    "name": "symbol",
+                    "type": "uint64"
                 },
                 {
                     "name": "count",
@@ -328,8 +328,8 @@
                     "type": "name"
                 },
                 {
-                    "name": "token_symbol",
-                    "type": "symbol"
+                    "name": "quantity",
+                    "type": "asset"
                 },
                 {
                     "name": "uri",
@@ -346,8 +346,8 @@
                     "type": "name"
                 },
                 {
-                    "name": "token_symbol",
-                    "type": "symbol"
+                    "name": "quantity",
+                    "type": "asset"
                 },
                 {
                     "name": "uri_id",
