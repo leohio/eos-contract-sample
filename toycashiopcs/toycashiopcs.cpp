@@ -373,13 +373,12 @@ void pcs::buy(name buyer, id_type token_id, asset price, string memo) {
     add_balance( buyer, bid_order->value , buyer );
 }
 
-void pcs::seturi(name owner, asset quantity, string uri) {
+void pcs::seturi(name owner, string sym, string uri) {
     require_auth( owner );
-    // e.g. quantity = "0 PCS"
-    uint64_t token_symbol = quantity.symbol.code().raw();
+    symbol token_symbol = symbol( sym.c_str(), 0);
 
     // symbol として正しいか確認
-    eosio_assert( quantity.symbol.is_valid(), "invalid symbol name" );
+    eosio_assert( token_symbol.is_valid(), "invalid symbol name" );
 
     // Check uri size and print
     eosio_assert( uri.size() <= 256, "uri has more than 256 bytes" );
@@ -387,21 +386,20 @@ void pcs::seturi(name owner, asset quantity, string uri) {
     pvcount.emplace( owner, [&]( auto& data ) {
         data.id = pvcount.available_primary_key();
         data.uri = uri;
-        data.symbol = token_symbol;
+        data.symbol = sym;
         data.count = 0;
     });
 }
 
-void pcs::setpvdata(name claimer, asset quantity, id_type uri_id, uint64_t count) {
+void pcs::setpvdata(name claimer, string sym, id_type uri_id, uint64_t count) {
     // コントラクトアカウントのみが呼び出せる
     require_auth( _self );
 
-    // e.g. quantity = "0 PCS"
-    uint64_t token_symbol = quantity.symbol.code().raw();
+    symbol token_symbol = symbol( sym.c_str(), 0);
 
     // symbol として正しいか確認
-    eosio_assert( quantity.symbol.is_valid(), "invalid symbol name" );
-    
+    eosio_assert( token_symbol.is_valid(), "invalid symbol name" );
+
     // すでに指定した uri に関する pv のデータがあることを確認
     auto pv_data = pvcount.find( uri_id );
     eosio_assert( pv_data != pvcount.end() ,"this uri is not exist in the pv count table" );
@@ -410,7 +408,7 @@ void pcs::setpvdata(name claimer, asset quantity, id_type uri_id, uint64_t count
     eosio_assert( pv_data->count + count > pv_data->count, "pv count overflow! so revert state." );
 
     // uri と sym の組み合わせが一致するか確認
-    eosio_assert( pv_data->symbol == token_symbol, "this uri is already used by an another community." );
+    eosio_assert( pv_data->symbol == sym, "this uri is already used by an another community." );
 
     pvcount.modify( pv_data, claimer, [&]( auto& data ) {
         data.count = data.count + count;

@@ -43,8 +43,8 @@ class pcs : public contract {
         void servebid(name owner, id_type token_id, asset price, string memo);
         void cancelbid(name owner, id_type token_id);
         void buy(name buyer, id_type token_id, asset price, string memo);
-        void seturi(name owner, asset quantity, string uri);
-        void setpvdata(name claimer, asset quantity, id_type uri_id, uint64_t count);
+        void seturi(name owner, string sym, string uri);
+        void setpvdata(name claimer, string sym, id_type uri_id, uint64_t count);
         void removepvdata(id_type uri_id);
         void receive();
 
@@ -116,12 +116,12 @@ class pcs : public contract {
         struct pvdata {
             id_type id;
             string uri;
-            uint64_t symbol;
+            string symbol;
             uint64_t count;
 
             id_type primary_key() const { return id; }
             string get_uri() const { return uri; }
-            uint64_t get_symbol() const { return symbol; }
+            string get_symbol() const { return symbol; }
             uint64_t get_count() const { return count; }
         };
 

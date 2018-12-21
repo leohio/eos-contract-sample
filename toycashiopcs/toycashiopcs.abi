@@ -159,7 +159,7 @@
                 },
                 {
                     "name": "symbol",
-                    "type": "uint64"
+                    "type": "string"
                 },
                 {
                     "name": "count",
@@ -328,8 +328,8 @@
                     "type": "name"
                 },
                 {
-                    "name": "quantity",
-                    "type": "asset"
+                    "name": "sym",
+                    "type": "string"
                 },
                 {
                     "name": "uri",
@@ -346,8 +346,8 @@
                     "type": "name"
                 },
                 {
-                    "name": "quantity",
-                    "type": "asset"
+                    "name": "sym",
+                    "type": "string"
                 },
                 {
                     "name": "uri_id",
