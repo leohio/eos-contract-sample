@@ -37,11 +37,11 @@ cleos get table toycashiopcs toycashiopcs token
 ### PV Count Data
 
 ```
-cleos push action toycashiopcs seturi '["leohioleohio", "0 PCS", "www.geomerlin.com"]' -p leohioleohio@active
+cleos push action toycashiopcs seturi '["leohioleohio", "PCS", "www.geomerlin.com"]' -p leohioleohio@active
 
 cleos get table toycashiopcs toycashiopcs pvcount
 
-cleos push action toycashiopcs setpvdata '["toycashiopcs", "0 PCS", 0, 50]' -p toycashiopcs@active
+cleos push action toycashiopcs setpvdata '["toycashiopcs", "PCS", 0, 50]' -p toycashiopcs@active
 
 cleos get table toycashiopcs toycashiopcs pvcount
 

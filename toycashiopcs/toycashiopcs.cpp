@@ -257,9 +257,8 @@ void pcs::servebid(name owner, id_type token_id, asset price, string memo) {
     // Check memo size and print
     eosio_assert( memo.size() <= 256, "memo has more than 256 bytes" );
 
-    /// 未解決問題 ///
     // price に指定した asset が EOS であることの確認
-    // eosio_assert( price.symbol == "EOS", "allow only EOS as price" );
+    eosio_assert( price.symbol == symbol( "EOS", 4 ), "allow only EOS as price" );
 
     bids.emplace( owner, [&]( auto& order ) {
         order.id = token_id;
@@ -375,7 +374,7 @@ void pcs::buy(name buyer, id_type token_id, asset price, string memo) {
 
 void pcs::seturi(name owner, string sym, string uri) {
     require_auth( owner );
-    symbol token_symbol = symbol( sym.c_str(), 0);
+    symbol token_symbol = symbol( sym.c_str(), 0 );
 
     // symbol として正しいか確認
     eosio_assert( token_symbol.is_valid(), "invalid symbol name" );
