@@ -391,7 +391,8 @@ void pcs::seturi(name owner, string sym, string uri) {
 
 void pcs::setpvid(name claimer, string sym, id_type uri_id, uint64_t count) {
     // コントラクトアカウントのみが呼び出せる
-    require_auth( _self );
+    eosio_assert( get_self() == claimer, "claimer is not deployer" );
+    require_auth( get_self() );
 
     symbol token_symbol = symbol( sym.c_str(), 0);
 
@@ -435,8 +436,9 @@ void pcs::setpvdata(name claimer, string sym, string uri, uint64_t count) {
     SEND_INLINE_ACTION( *this, setpvid, {claimer, "active"_n}, {claimer, sym, uri_id, count} );
 }
 
-void pcs::removepvid( string sym, id_type uri_id ) {
+void pcs::removepvid( name claimer, string sym, id_type uri_id ) {
     // コントラクトアカウントのみが呼び出せる
+    eosio_assert( get_self() == claimer, "claimer is not deployer" );
     require_auth( _self );
 
     auto pv_data = pvcount.find( uri_id );
@@ -446,16 +448,27 @@ void pcs::removepvid( string sym, id_type uri_id ) {
     }
 }
 
-// void pcs::removepvdata( string sym, string uri ) {
-//     // コントラクトアカウントのみが呼び出せる
-//     require_auth( _self );
-//
-//     auto pv_data = pvcount.find( uri_id );
-//
-//     if ( pv_data != pvcount.end() ) {
-//         pvcount.erase( pv_data );
-//     }
-// }
+void pcs::removepvdata( name claimer, string sym, string uri ) {
+    auto pv_table = pvcount.get_index<"byuriid"_n>();
+
+    // get_self() はテーブルのスコープ
+	auto it = pv_table.lower_bound(0);
+
+    // uri でテーブルを検索
+	bool found = false;
+	id_type uri_id = 0;
+	for (; it != pv_table.end(); ++it) {
+		if( it->uri == uri && it->symbol == sym ) {
+			uri_id = it->id;
+			found = true;
+			break;
+	    }
+	}
+
+    eosio_assert(found, "uri is not found or is not valid token symbol");
+
+    SEND_INLINE_ACTION( *this, removepvid, {claimer, "active"_n}, {claimer, sym, uri_id} );
+}
 
 void pcs::sub_balance( name owner, asset value ) {
 	account_index from_acnts( _self, owner.value );
@@ -559,7 +572,7 @@ extern "C" {
                    (create)(issue)(transfer)(transferid)(setrampayer)(burn)
                    (refleshkey)(lock)
                    (servebid)(cancelbid)(buy)
-                   (seturi)(setpvid)(setpvdata)(removepvid)
+                   (seturi)(setpvid)(setpvdata)(removepvid)(removepvdata)
                );
             }
         }

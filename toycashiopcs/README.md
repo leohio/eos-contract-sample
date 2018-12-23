@@ -45,8 +45,7 @@ cleos push action toycashiopcs setpvdata '["toycashiopcs", "PCS", "www.geomerlin
 
 cleos get table toycashiopcs toycashiopcs pvcount
 
-// 0 is the ID of www.geomerlin.com
-cleos push action toycashiopcs removepvid '["PCS", 0]' -p toycashiopcs@active
+cleos push action toycashiopcs removepvdata '["toycashiopcs", "PCS", "www.geomerlin.com"]' -p toycashiopcs@active
 
 cleos get table toycashiopcs toycashiopcs pvcount
 ```

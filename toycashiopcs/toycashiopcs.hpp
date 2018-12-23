@@ -46,8 +46,8 @@ class pcs : public contract {
         void seturi(name owner, string sym, string uri);
         void setpvid(name claimer, string sym, id_type uri_id, uint64_t count);
         void setpvdata(name claimer, string sym, string uri, uint64_t count);
-        void removepvid(string sym, id_type uri_id);
-        // void removepvdata(string sym, string uri);
+        void removepvid(name claimer, string sym, id_type uri_id);
+        void removepvdata(name claimer, string sym, string uri);
         void receive();
 
         /**

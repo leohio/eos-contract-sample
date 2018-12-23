@@ -386,6 +386,10 @@
             "base": "",
             "fields": [
                 {
+                    "name": "claimer",
+                    "type": "name"
+                },
+                {
                     "name": "sym",
                     "type": "string"
                 },
@@ -399,6 +403,10 @@
             "name": "removepvdata",
             "base": "",
             "fields": [
+                {
+                    "name": "claimer",
+                    "type": "name"
+                },
                 {
                     "name": "sym",
                     "type": "string"
