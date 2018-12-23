@@ -48,6 +48,7 @@ class pcs : public contract {
         void setpvdata(name claimer, string sym, string uri, uint64_t count);
         void removepvid(name claimer, string sym, id_type uri_id);
         void removepvdata(name claimer, string sym, string uri);
+
         void receive();
 
         /**
@@ -181,4 +182,6 @@ class pcs : public contract {
         void sub_supply(asset quantity);
         void add_supply(asset quantity);
         void withdraw(name user, asset quantity, string memo);
+        id_type find_own_token(name owner, symbol sym);
+        id_type find_pvdata_by_uri(string sym, string uri);
 };

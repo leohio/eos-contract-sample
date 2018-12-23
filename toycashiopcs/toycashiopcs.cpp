@@ -120,27 +120,19 @@ void pcs::transfer( name from, name to, asset quantity, string memo ) {
 
 	eosio_assert( quantity.amount == 1, "cannot transfer quantity, not equal to 1" );
 
-	auto symbl = tokens.get_index<"bysymbol"_n>();
-
-	auto it = symbl.lower_bound(quantity.symbol.code().raw());
-
-	bool found = false;
-	id_type id = 0;
-	for (; it != symbl.end(); ++it) {
-		if( it->value.symbol == quantity.symbol && it->owner == from) {
-			id = it->id;
-			found = true;
-			break;
-		}
-	}
-
-	eosio_assert(found, "token is not found or is not owned by account");
+    // 所持トークンを1つ探す
+    id_type id = pcs::find_own_token( from, quantity.symbol );
 
 	// Notify both recipients
     require_recipient( from );
 	require_recipient( to );
 
-	SEND_INLINE_ACTION( *this, transferid, {from, "active"_n}, {from, to, id, memo} );
+    action(
+        permission_level{ from, name("active") }, // このアカウントの権限を用いて
+        get_self(), // このコントラクト内にある
+        name("transferid"), // このメソッドに
+        std::make_tuple( from, to, id, memo ) // 引数をタプルで渡して
+    ).send(); // アクションを実行する
 }
 
 void pcs::mint( name owner, name ram_payer, asset value, public_key subkey, string tkn_name) {
@@ -203,7 +195,7 @@ void pcs::refleshkey( name owner, id_type token_id, public_key subkey ) {
 
 void pcs::lock( name accuser, id_type token_id, string signature) {
     require_auth( accuser );
-    eosio_assert( accuser != _self, "do not burn token by contract account" );
+    eosio_assert( accuser != get_self(), "do not burn token by contract account" );
 
     auto target_token = tokens.find( token_id );
     eosio_assert( target_token != tokens.end(), "token with id does not exist" );
@@ -226,7 +218,7 @@ void pcs::lock( name accuser, id_type token_id, string signature) {
 
 void pcs::burn( name owner, id_type token_id ) {
     require_auth( owner );
-    eosio_assert( owner != _self, "does not burn token by contract account" );
+    eosio_assert( owner != get_self(), "does not burn token by contract account" );
 
     // Find token to burn
     auto burn_token = tokens.find( token_id );
@@ -247,7 +239,7 @@ void pcs::burn( name owner, id_type token_id ) {
 
 void pcs::servebid(name owner, id_type token_id, asset price, string memo) {
     require_auth( owner );
-    eosio_assert( owner != _self, "does not serve bid order by contract account" );
+    eosio_assert( owner != get_self(), "does not serve bid order by contract account" );
 
     auto target_token = tokens.find( token_id );
     eosio_assert( target_token != tokens.end(), "token with id does not exist" );
@@ -276,7 +268,7 @@ void pcs::servebid(name owner, id_type token_id, asset price, string memo) {
 
 void pcs::cancelbid(name owner, id_type token_id) {
     require_auth( owner );
-    eosio_assert( owner != _self, "does not cancel bid order by contract account" );
+    eosio_assert( owner != get_self(), "does not cancel bid order by contract account" );
 
     auto target_token = tokens.find( token_id );
     auto bid_order = bids.find( token_id );
@@ -397,12 +389,11 @@ void pcs::seturi(name owner, string sym, string uri) {
 
 void pcs::setpvid(name claimer, string sym, id_type uri_id, uint64_t count) {
     // コントラクトアカウントのみが呼び出せる
-    eosio_assert( get_self() == claimer, "claimer is not deployer" );
-    require_auth( get_self() );
-
-    symbol token_symbol = symbol( sym.c_str(), 0);
+    require_auth( claimer );
+    eosio_assert( claimer == get_self(), "setpvid action must execute by the contract account" );
 
     // symbol として正しいか確認
+    symbol token_symbol = symbol( sym.c_str(), 0 );
     eosio_assert( token_symbol.is_valid(), "invalid symbol name" );
 
     // すでに指定した uri に関する pv のデータがあることを確認
@@ -412,68 +403,35 @@ void pcs::setpvid(name claimer, string sym, id_type uri_id, uint64_t count) {
     // overflow 対策
     eosio_assert( pv_data->count + count > pv_data->count, "pv count overflow! so revert state." );
 
-    // uri と sym の組み合わせが一致するか確認
-    eosio_assert( pv_data->symbol == sym, "this uri is already used by an another community." );
-
     pvcount.modify( pv_data, claimer, [&]( auto& data ) {
         data.count = data.count + count;
     });
 }
 
 void pcs::setpvdata(name claimer, string sym, string uri, uint64_t count) {
-    auto pv_table = pvcount.get_index<"byuriid"_n>();
-
-    // get_self() はテーブルのスコープ
-	auto it = pv_table.lower_bound(0);
-
-    // uri でテーブルを検索
-	bool found = false;
-	id_type uri_id = 0;
-	for (; it != pv_table.end(); ++it) {
-		if( it->uri == uri && it->symbol == sym ) {
-			uri_id = it->id;
-			found = true;
-			break;
-	    }
-	}
-
-    eosio_assert(found, "uri is not found or is not valid token symbol");
-
-    SEND_INLINE_ACTION( *this, setpvid, {claimer, "active"_n}, {claimer, sym, uri_id, count} );
+    id_type uri_id = pcs::find_pvdata_by_uri( sym, uri );
+    pcs::setpvid( claimer, sym, uri_id, count );
 }
 
-void pcs::removepvid( name claimer, string sym, id_type uri_id ) {
+void pcs::removepvid(name claimer, string sym, id_type uri_id) {
     // コントラクトアカウントのみが呼び出せる
-    eosio_assert( get_self() == claimer, "claimer is not deployer" );
-    require_auth( _self );
+    require_auth( claimer );
+    eosio_assert( claimer == get_self(), "removepvid action must execute by the contract account" );
 
+    // symbol として正しいか確認
+    symbol token_symbol = symbol( sym.c_str(), 0 );
+    eosio_assert( token_symbol.is_valid(), "invalid symbol name" );
+
+    // すでに指定した uri に関する pv のデータがあることを確認
     auto pv_data = pvcount.find( uri_id );
+    eosio_assert( pv_data != pvcount.end() ,"this uri is not exist in the pv count table" );
 
-    if ( pv_data != pvcount.end() ) {
-        pvcount.erase( pv_data );
-    }
+    pvcount.erase( pv_data );
 }
 
 void pcs::removepvdata( name claimer, string sym, string uri ) {
-    auto pv_table = pvcount.get_index<"byuriid"_n>();
-
-    // get_self() はテーブルのスコープ
-	auto it = pv_table.lower_bound(0);
-
-    // uri でテーブルを検索
-	bool found = false;
-	id_type uri_id = 0;
-	for (; it != pv_table.end(); ++it) {
-		if( it->uri == uri && it->symbol == sym ) {
-			uri_id = it->id;
-			found = true;
-			break;
-	    }
-	}
-
-    eosio_assert(found, "uri is not found or is not valid token symbol");
-
-    SEND_INLINE_ACTION( *this, removepvid, {claimer, "active"_n}, {claimer, sym, uri_id} );
+    id_type uri_id = pcs::find_pvdata_by_uri( sym, uri );
+    pcs::removepvid( claimer, sym, uri_id );
 }
 
 void pcs::sub_balance( name owner, asset value ) {
@@ -527,23 +485,11 @@ void pcs::add_supply( asset quantity ) {
 
 void pcs::withdraw( name user, asset quantity, string memo ) {
     auto balance_data = bt.find( user.value );
-
-    eosio_assert(
-        balance_data != bt.end(),
-        "do not exist your data"
-    );
+    eosio_assert(balance_data != bt.end(), "do not exist your data");
 
     asset deposit = balance_data->quantity;
-
-    eosio_assert(
-        deposit.symbol == quantity.symbol,
-        "different symbol or precision mismatch from your token deposited"
-    );
-
-    eosio_assert(
-        deposit.amount >= quantity.amount,
-        "exceed the withdrawable amount"
-    );
+    eosio_assert(deposit.symbol == quantity.symbol, "different symbol or precision mismatch from your token deposited");
+    eosio_assert(deposit.amount >= quantity.amount, "exceed the withdrawable amount");
 
     if ( deposit.amount == quantity.amount ) {
         bt.erase( balance_data );
@@ -561,6 +507,47 @@ void pcs::withdraw( name user, asset quantity, string memo ) {
         name("transfer"), // このメソッドに
         std::make_tuple( get_self(), user, quantity, memo ) // 引数をタプルで渡して
     ).send(); // アクションを実行する
+}
+
+id_type pcs::find_own_token(name owner, symbol sym) {
+    auto token_table = tokens.get_index<name("bysymbol")>();
+
+    auto it = token_table.lower_bound( sym.code().raw() );
+
+    bool found = false;
+    id_type token_id = 0;
+    for (; it != token_table.end(); ++it) {
+        if( it->value.symbol == sym && it->owner == owner) {
+            token_id = it->id;
+            found = true;
+            break;
+        }
+    }
+
+    eosio_assert(found, "token is not found or is not owned by account");
+
+    return token_id;
+}
+
+id_type pcs::find_pvdata_by_uri(string sym, string uri) {
+    auto pv_table = pvcount.get_index<name("byuriid")>();
+
+    auto it = pv_table.lower_bound(0);
+
+    // uri でテーブルを検索
+    bool found = false;
+    id_type uri_id = 0;
+    for (; it != pv_table.end(); ++it) {
+        if( it->uri == uri && it->symbol == sym ) {
+            uri_id = it->id;
+            found = true;
+            break;
+        }
+    }
+
+    eosio_assert(found, "uri is not found or is not valid token symbol");
+
+    return uri_id;
 }
 
 /// dispatcher
