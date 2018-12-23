@@ -44,8 +44,10 @@ class pcs : public contract {
         void cancelbid(name owner, id_type token_id);
         void buy(name buyer, id_type token_id, asset price, string memo);
         void seturi(name owner, string sym, string uri);
-        void setpvdata(name claimer, string sym, id_type uri_id, uint64_t count);
-        void removepvdata(id_type uri_id);
+        void setpvid(name claimer, string sym, id_type uri_id, uint64_t count);
+        void setpvdata(name claimer, string sym, string uri, uint64_t count);
+        void removepvid(string sym, id_type uri_id);
+        // void removepvdata(string sym, string uri);
         void receive();
 
         /**
@@ -72,7 +74,7 @@ class pcs : public contract {
 	        string tokenName; // token name
             uint8_t active; // whether this token is locked or not
 
-            id_type primary_key() const { return id; }
+            uint64_t primary_key() const { return id; }
             uint64_t get_owner() const { return owner.value; }
             public_key get_subkey() const { return subkey; }
             asset get_value() const { return value; }
@@ -106,7 +108,7 @@ class pcs : public contract {
             name owner;
             asset value; // e.g. "1 PCS"
 
-            id_type primary_key() const { return id; }
+            uint64_t primary_key() const { return id; }
             asset get_price() const { return price; }
             uint64_t get_owner() const { return owner.value; }
             asset get_value() const { return value; }
@@ -119,7 +121,7 @@ class pcs : public contract {
             string symbol;
             uint64_t count;
 
-            id_type primary_key() const { return id; }
+            uint64_t primary_key() const { return id; }
             string get_uri() const { return uri; }
             string get_symbol() const { return symbol; }
             uint64_t get_count() const { return count; }
@@ -151,7 +153,7 @@ class pcs : public contract {
     	    indexed_by< "byissuer"_n, const_mem_fun< stats, uint64_t, &stats::get_issuer> > >;
 
     	using token_index = eosio::multi_index< "token"_n, token,
-    	    indexed_by< "byowner"_n, const_mem_fun<token, uint64_t, &token::get_owner> >,
+    	    indexed_by< "byowner"_n, const_mem_fun<token, uint64_t, &token::primary_key> >,
             indexed_by< "bysymbol"_n, const_mem_fun<token, uint64_t, &token::get_symbol> > >;
 
         // 売り板
@@ -160,6 +162,7 @@ class pcs : public contract {
             indexed_by< "bysymbol"_n, const_mem_fun<order, uint64_t, &order::get_symbol> > >;
 
         using pv_count_data = eosio::multi_index< "pvcount"_n, pvdata,
+            indexed_by< "byuriid"_n, const_mem_fun<pvdata, uint64_t, &pvdata::primary_key> >,
             indexed_by< "bycount"_n, const_mem_fun<pvdata, uint64_t, &pvdata::get_count> > >;
 
     private:

@@ -338,7 +338,7 @@
             ]
         },
         {
-            "name": "setpvdata",
+            "name": "setpvid",
             "base": "",
             "fields": [
                 {
@@ -360,12 +360,52 @@
             ]
         },
         {
+            "name": "setpvdata",
+            "base": "",
+            "fields": [
+                {
+                    "name": "claimer",
+                    "type": "name"
+                },
+                {
+                    "name": "sym",
+                    "type": "string"
+                },
+                {
+                    "name": "uri",
+                    "type": "string"
+                },
+                {
+                    "name": "count",
+                    "type": "uint64"
+                }
+            ]
+        },
+        {
+            "name": "removepvid",
+            "base": "",
+            "fields": [
+                {
+                    "name": "sym",
+                    "type": "string"
+                },
+                {
+                    "name": "uri_id",
+                    "type": "uint64"
+                }
+            ]
+        },
+        {
             "name": "removepvdata",
             "base": "",
             "fields": [
                 {
-                    "name": "uri_id",
-                    "type": "uint64"
+                    "name": "sym",
+                    "type": "string"
+                },
+                {
+                    "name": "uri",
+                    "type": "string"
                 }
             ]
         },
@@ -418,6 +458,11 @@
             "ricardian_contract": ""
         },
         {
+            "name": "removepvid",
+            "type": "removepvid",
+            "ricardian_contract": ""
+        },
+        {
             "name": "servebid",
             "type": "servebid",
             "ricardian_contract": ""
@@ -425,6 +470,11 @@
         {
             "name": "setpvdata",
             "type": "setpvdata",
+            "ricardian_contract": ""
+        },
+        {
+            "name": "setpvid",
+            "type": "setpvid",
             "ricardian_contract": ""
         },
         {

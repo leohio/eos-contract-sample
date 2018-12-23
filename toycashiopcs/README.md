@@ -41,11 +41,12 @@ cleos push action toycashiopcs seturi '["leohioleohio", "PCS", "www.geomerlin.co
 
 cleos get table toycashiopcs toycashiopcs pvcount
 
-cleos push action toycashiopcs setpvdata '["toycashiopcs", "PCS", 0, 50]' -p toycashiopcs@active
+cleos push action toycashiopcs setpvdata '["toycashiopcs", "PCS", "www.geomerlin.com", 50]' -p toycashiopcs@active
 
 cleos get table toycashiopcs toycashiopcs pvcount
 
-cleos push action toycashiopcs removepvdata '[0]' -p toycashiopcs@active
+// 0 is the ID of www.geomerlin.com
+cleos push action toycashiopcs removepvid '["PCS", 0]' -p toycashiopcs@active
 
 cleos get table toycashiopcs toycashiopcs pvcount
 ```

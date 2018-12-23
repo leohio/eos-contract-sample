@@ -13,7 +13,7 @@ void pcs::create( name issuer, string sym ) {
 	eosio_assert( is_account( issuer ), "issuer account does not exist");
 
     // Valid symbol
-    asset supply(0, symbol( symbol_code( sym.c_str() ), 0) );
+    asset supply(0, symbol( symbol_code( sym.c_str() ), 0 ) );
 
     auto symbol = supply.symbol;
     eosio_assert( symbol.is_valid(), "invalid symbol name" );
@@ -126,8 +126,7 @@ void pcs::transfer( name from, name to, asset quantity, string memo ) {
 
 	bool found = false;
 	id_type id = 0;
-	for(; it!=symbl.end(); ++it){
-
+	for (; it != symbl.end(); ++it) {
 		if( it->value.symbol == quantity.symbol && it->owner == from) {
 			id = it->id;
 			found = true;
@@ -390,7 +389,7 @@ void pcs::seturi(name owner, string sym, string uri) {
     });
 }
 
-void pcs::setpvdata(name claimer, string sym, id_type uri_id, uint64_t count) {
+void pcs::setpvid(name claimer, string sym, id_type uri_id, uint64_t count) {
     // コントラクトアカウントのみが呼び出せる
     require_auth( _self );
 
@@ -414,7 +413,29 @@ void pcs::setpvdata(name claimer, string sym, id_type uri_id, uint64_t count) {
     });
 }
 
-void pcs::removepvdata( id_type uri_id ) {
+void pcs::setpvdata(name claimer, string sym, string uri, uint64_t count) {
+    auto pv_table = pvcount.get_index<"byuriid"_n>();
+
+    // get_self() はテーブルのスコープ
+	auto it = pv_table.lower_bound(0);
+
+    // uri でテーブルを検索
+	bool found = false;
+	id_type uri_id = 0;
+	for (; it != pv_table.end(); ++it) {
+		if( it->uri == uri && it->symbol == sym ) {
+			uri_id = it->id;
+			found = true;
+			break;
+	    }
+	}
+
+    eosio_assert(found, "uri is not found or is not valid token symbol");
+
+    SEND_INLINE_ACTION( *this, setpvid, {claimer, "active"_n}, {claimer, sym, uri_id, count} );
+}
+
+void pcs::removepvid( string sym, id_type uri_id ) {
     // コントラクトアカウントのみが呼び出せる
     require_auth( _self );
 
@@ -424,6 +445,17 @@ void pcs::removepvdata( id_type uri_id ) {
         pvcount.erase( pv_data );
     }
 }
+
+// void pcs::removepvdata( string sym, string uri ) {
+//     // コントラクトアカウントのみが呼び出せる
+//     require_auth( _self );
+//
+//     auto pv_data = pvcount.find( uri_id );
+//
+//     if ( pv_data != pvcount.end() ) {
+//         pvcount.erase( pv_data );
+//     }
+// }
 
 void pcs::sub_balance( name owner, asset value ) {
 	account_index from_acnts( _self, owner.value );
@@ -523,7 +555,12 @@ extern "C" {
             }
         } else if ( code == receiver ) {
             switch( action ) {
-               EOSIO_DISPATCH_HELPER( pcs, (create)(issue)(transfer)(transferid)(setrampayer)(refleshkey)(lock)(burn)(servebid)(cancelbid)(buy)(seturi)(setpvdata)(removepvdata) );
+               EOSIO_DISPATCH_HELPER( pcs,
+                   (create)(issue)(transfer)(transferid)(setrampayer)(burn)
+                   (refleshkey)(lock)
+                   (servebid)(cancelbid)(buy)
+                   (seturi)(setpvid)(setpvdata)(removepvid)
+               );
             }
         }
     }
