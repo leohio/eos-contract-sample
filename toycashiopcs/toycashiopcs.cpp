@@ -378,6 +378,12 @@ void pcs::seturi(name owner, string sym, string uri) {
     // symbol として正しいか確認
     eosio_assert( token_symbol.is_valid(), "invalid symbol name" );
 
+    // Ensure currency has been created
+    auto symbol_name = token_symbol.code().raw();
+    currency_index currency_table( _self, symbol_name );
+    auto existing_currency = currency_table.find( symbol_name );
+    eosio_assert( existing_currency != currency_table.end(), "token with symbol does not exist. create token before issue" );
+
     // Check uri size and print
     eosio_assert( uri.size() <= 256, "uri has more than 256 bytes" );
 
