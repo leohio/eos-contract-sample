@@ -8,4 +8,12 @@ receiveeos/nodeos.log
 
 toycashiopcs/compile.sh
 toycashiopcs/set_contract.sh
+toycashiopcs/lock_token.sh
 toycashiopcs/nodeos.log
+
+# buyram
+
+buyram/compile.sh
+buyram/set_contract.sh
+buyram/buyram.sh
+buyram/nodeos.log

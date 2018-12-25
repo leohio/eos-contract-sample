@@ -1,0 +1,30 @@
+{
+    "version": "eosio::abi/1.0",
+    "structs": [
+        {
+            "name": "buyram",
+            "base": "",
+            "fields": [
+                {
+                    "name": "to",
+                    "type": "name"
+                },
+                {
+                    "name": "bytes",
+                    "type": "uint32"
+                }
+            ]
+        }
+    ],
+    "actions": [
+        {
+            "name": "buyram",
+            "type": "buyram",
+            "ricardian_contract": ""
+        }
+    ],
+    "tables": [],
+    "types": [],
+    "ricardian_clauses": [],
+    "abi_extensions": []
+}
