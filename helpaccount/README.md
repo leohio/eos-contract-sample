@@ -1,4 +1,4 @@
-# buyram
+# helpaccount
 
 ## Warning
 
@@ -18,5 +18,5 @@ For example,
 
 ```
 cleos -u https://api-kylin.eosasia.one:443 \
-push action mokemokecore buyram '["mokemokecore", 1024]' -p mokemokecore@active
+push action helpaccount1 buyram '["mokemokecore", 1024]' -p mokemokecore@active
 ```
