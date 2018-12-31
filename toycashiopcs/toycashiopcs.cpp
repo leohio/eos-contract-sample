@@ -31,7 +31,7 @@ void pcs::create( name issuer, string sym ) {
     });
 }
 
-void pcs::issue( name to, asset quantity, vector<public_key> subkeys, string tkn_name, string memo) {
+void pcs::issue( name to, asset quantity, vector<public_key> subkeys, string tkn_name, string memo ) {
 	eosio_assert( is_account( to ), "to account does not exist");
     eosio_assert( to != _self, "do not issue token by contract account" );
 
@@ -135,7 +135,7 @@ void pcs::transfer( name from, name to, asset quantity, string memo ) {
     ).send(); // アクションを実行する
 }
 
-void pcs::mint( name owner, name ram_payer, asset value, public_key subkey, string tkn_name) {
+void pcs::mint( name owner, name ram_payer, asset value, public_key subkey, string tkn_name ) {
     // set uri with creator paying for RAM
     tokens.emplace( ram_payer, [&]( auto& token ) {
         token.id = tokens.available_primary_key();
@@ -147,7 +147,7 @@ void pcs::mint( name owner, name ram_payer, asset value, public_key subkey, stri
     });
 }
 
-void pcs::setrampayer(name payer, id_type id) {
+void pcs::setrampayer( name payer, id_type id ) {
 	require_auth( payer );
 
 	// Ensure token ID exists
@@ -193,7 +193,8 @@ void pcs::refleshkey( name owner, id_type token_id, public_key subkey ) {
     require_recipient( owner );
 }
 
-void pcs::lock( name accuser, id_type token_id, string signature) {
+// 未完成
+void pcs::lock( name accuser, id_type token_id, capi_signature sig ) {
     require_auth( accuser );
     eosio_assert( accuser != get_self(), "do not burn token by contract account" );
 
@@ -203,13 +204,12 @@ void pcs::lock( name accuser, id_type token_id, string signature) {
     // 署名検証
     // target_token に記載された public key に対応する
     // private key を知っている人のみがロックの権限をもつ
-    string data = "data which will sign by subkey";
+    string data = "{\"expiration\":\"1970-01-01T00:00:00\",\"ref_block_num\":0,\"ref_block_prefix\":0,\"max_net_usage_words\":0,\"max_cpu_usage_ms\":0,\"delay_sec\":0,\"context_free_actions\":[],\"actions\":[],\"transaction_extensions\":[],\"context_free_data\":[]}";
     public_key pk = target_token->subkey;
     capi_checksum256 digest;
     sha256(&data[0], data.size(), &digest);
-    // (const char *)&signature, sizeof(signature)
-    // この関数がアウト
-    assert_recover_key(&digest, &signature[0], signature.size(), (const char *)&pk, sizeof(pk));
+
+    assert_recover_key(&digest, (const char *)&sig, sizeof(sig), (const char *)&pk, sizeof(pk));
 
     tokens.modify( target_token, accuser, [&](auto& token) {
         token.active = 0;
@@ -237,7 +237,7 @@ void pcs::burn( name owner, id_type token_id ) {
     sub_supply( burnt_supply );
 }
 
-void pcs::servebid(name owner, id_type token_id, asset price, string memo) {
+void pcs::servebid( name owner, id_type token_id, asset price, string memo ) {
     require_auth( owner );
     eosio_assert( owner != get_self(), "does not serve bid order by contract account" );
 
@@ -266,7 +266,7 @@ void pcs::servebid(name owner, id_type token_id, asset price, string memo) {
     sub_balance( owner, target_token->value );
 }
 
-void pcs::cancelbid(name owner, id_type token_id) {
+void pcs::cancelbid( name owner, id_type token_id ) {
     require_auth( owner );
     eosio_assert( owner != get_self(), "does not cancel bid order by contract account" );
 
@@ -338,7 +338,7 @@ void pcs::receive() {
     }*/
 }
 
-void pcs::buy(name buyer, id_type token_id, asset price, string memo) {
+void pcs::buy( name buyer, id_type token_id, asset price, string memo ) {
     require_auth( buyer );
     eosio_assert( buyer != _self, "does not buy token by contract account" );
 
@@ -363,7 +363,7 @@ void pcs::buy(name buyer, id_type token_id, asset price, string memo) {
     add_balance( buyer, bid_order->value , buyer );
 }
 
-void pcs::seturi(name owner, string sym, string uri) {
+void pcs::seturi( name owner, string sym, string uri ) {
     require_auth( owner );
     symbol token_symbol = symbol( sym.c_str(), 0 );
 
@@ -387,7 +387,7 @@ void pcs::seturi(name owner, string sym, string uri) {
     });
 }
 
-void pcs::setpvid(name claimer, string sym, id_type uri_id, uint64_t count) {
+void pcs::setpvid( name claimer, string sym, id_type uri_id, uint64_t count ) {
     // コントラクトアカウントのみが呼び出せる
     require_auth( claimer );
     eosio_assert( claimer == get_self(), "setpvid action must execute by the contract account" );
@@ -408,12 +408,12 @@ void pcs::setpvid(name claimer, string sym, id_type uri_id, uint64_t count) {
     });
 }
 
-void pcs::setpvdata(name claimer, string sym, string uri, uint64_t count) {
+void pcs::setpvdata( name claimer, string sym, string uri, uint64_t count ) {
     id_type uri_id = pcs::find_pvdata_by_uri( sym, uri );
     pcs::setpvid( claimer, sym, uri_id, count );
 }
 
-void pcs::removepvid(name claimer, string sym, id_type uri_id) {
+void pcs::removepvid( name claimer, string sym, id_type uri_id ) {
     // コントラクトアカウントのみが呼び出せる
     require_auth( claimer );
     eosio_assert( claimer == get_self(), "removepvid action must execute by the contract account" );
@@ -509,7 +509,7 @@ void pcs::withdraw( name user, asset quantity, string memo ) {
     ).send(); // アクションを実行する
 }
 
-id_type pcs::find_own_token(name owner, symbol sym) {
+id_type pcs::find_own_token( name owner, symbol sym ) {
     auto token_table = tokens.get_index<name("bysymbol")>();
 
     auto it = token_table.lower_bound( sym.code().raw() );
@@ -529,7 +529,7 @@ id_type pcs::find_own_token(name owner, symbol sym) {
     return token_id;
 }
 
-id_type pcs::find_pvdata_by_uri(string sym, string uri) {
+id_type pcs::find_pvdata_by_uri( string sym, string uri ) {
     auto pv_table = pvcount.get_index<name("byuriid")>();
 
     auto it = pv_table.lower_bound(0);
@@ -563,7 +563,7 @@ extern "C" {
             switch( action ) {
                EOSIO_DISPATCH_HELPER( pcs,
                    (create)(issue)(transfer)(transferid)(setrampayer)(burn)
-                   (refleshkey)(lock)
+                   (refleshkey)
                    (servebid)(cancelbid)(buy)
                    (seturi)(setpvid)(setpvdata)(removepvid)(removepvdata)
                );

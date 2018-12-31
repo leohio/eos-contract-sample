@@ -17,3 +17,7 @@ helpaccount/compile.sh
 helpaccount/set_contract.sh
 helpaccount/buyram.sh
 helpaccount/nodeos.log
+
+# pcstoycashio
+
+pcstoycashio/*

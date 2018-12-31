@@ -39,7 +39,7 @@ class pcs : public contract {
         void burn(name owner, id_type token_id);
 	    void setrampayer(name payer, id_type id);
         void refleshkey(name owner, id_type token_id, public_key subkey);
-        void lock(name accuser, id_type token_id, string signature);
+        void lock(name accuser, id_type token_id, capi_signature sig);
         void servebid(name owner, id_type token_id, asset price, string memo);
         void cancelbid(name owner, id_type token_id);
         void buy(name buyer, id_type token_id, asset price, string memo);
