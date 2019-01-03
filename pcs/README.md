@@ -1,4 +1,4 @@
-# pcstoycashio
+# pcs
 
 ## Commands
 
