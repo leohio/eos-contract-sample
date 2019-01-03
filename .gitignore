@@ -8,8 +8,13 @@ receiveeos/nodeos.log
 
 toycashiopcs/compile.sh
 toycashiopcs/set_contract.sh
-toycashiopcs/lock_token.sh
 toycashiopcs/nodeos.log
+
+# pcs
+
+pcs/compile.sh
+pcs/set_contract.sh
+pcs/nodeos.log
 
 # helpaccount
 
@@ -17,7 +22,3 @@ helpaccount/compile.sh
 helpaccount/set_contract.sh
 helpaccount/buyram.sh
 helpaccount/nodeos.log
-
-# pcstoycashio
-
-pcstoycashio/*
