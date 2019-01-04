@@ -1,5 +1,4 @@
 #include "pcs.hpp"
-// #include <regex>
 
 using namespace eosio;
 using std::string;
@@ -9,20 +8,20 @@ void pcs::create( name issuer, symbol_code sym ) {
 	require_auth( get_self() );
     eosio_assert( issuer != get_self(), "do not create token by contract account" );
 
-	// Check if issuer account exists
+	/// Check if issuer account exists
 	eosio_assert( is_account( issuer ), "issuer account does not exist");
 
     eosio_assert( sym != symbol_code("EOS"), "EOS is invalid token symbol");
 
-    // Valid symbol
+    /// Valid symbol
     eosio_assert( sym.is_valid(), "invalid symbol name" );
 
-    // Check if currency with symbol already exists
+    /// Check if currency with symbol already exists
     currency_index currency_table( get_self(), sym.raw() );
     auto existing_currency = currency_table.find( sym.raw() );
     eosio_assert( existing_currency == currency_table.end(), "token with symbol already exists" );
 
-    // Create new currency
+    /// Create new currency
     currency_table.emplace( get_self(), [&]( auto& data ) {
         data.supply = asset{ 0, symbol( sym, 0 ) };
         data.issuer = issuer;
@@ -33,22 +32,22 @@ void pcs::destroy( name claimer, symbol_code sym ) {
     require_auth( get_self() );
     eosio_assert( claimer == get_self(), "only destroy token by contract account" );
 
-    // Valid symbol
+    /// Valid symbol
     eosio_assert( sym.is_valid(), "invalid symbol name" );
 
-    // Check if currency with symbol already exists
+    /// Check if currency with symbol already exists
     currency_index currency_table( get_self(), sym.raw() );
     auto existing_currency = currency_table.find( sym.raw() );
     eosio_assert( existing_currency != currency_table.end(), "token with symbol does not exists" );
 
-    // Create new currency
+    /// Create new currency
     currency_table.erase( existing_currency );
 }
 
 void pcs::mint_token( name user, symbol_code sym, capi_public_key subkey, name ram_payer ) {
     add_balance( user, sym, ram_payer );
 
-    // set uri with creator paying for RAM
+    /// set uri with creator paying for RAM
     tokens.emplace( ram_payer, [&]( auto& data ) {
         data.id = tokens.available_primary_key();
         data.subkey = subkey;
@@ -64,19 +63,19 @@ void pcs::issue( name user, symbol_code sym, vector<capi_public_key> subkeys, st
     eosio_assert( sym.is_valid(), "invalid symbol code" );
     eosio_assert( memo.size() <= 256, "memo has more than 256 bytes" );
 
-    // Ensure currency has been created
+    /// Ensure currency has been created
     currency_index currency_table( get_self(), sym.raw() );
     auto existing_currency = currency_table.find( sym.raw() );
     eosio_assert( existing_currency != currency_table.end(), "token with symbol does not exist. create token before issue" );
 
-    // Ensure have issuer authorization
+    /// Ensure have issuer authorization
     require_auth( existing_currency->issuer );
 
-    // valid quantity
+    /// valid quantity
     eosio_assert( subkeys.size() > 0, "must issue positive quantity of NFT" );
     eosio_assert( sym == existing_currency->supply.symbol.code(), "symbol precision mismatch" );
 
-    // Increase supply
+    /// Increase supply
     add_supply( sym, subkeys.size() );
 
     for (auto const& subkey: subkeys) {
@@ -85,56 +84,56 @@ void pcs::issue( name user, symbol_code sym, vector<capi_public_key> subkeys, st
 }
 
 void pcs::transferid( name from, name to, symbol_code sym, uint64_t id, string memo ) {
-    // Ensure authorized to send from account
+    /// Ensure authorized to send from account
     eosio_assert( from != to, "cannot transfer to self" );
     require_auth( from );
     eosio_assert( from != get_self(), "do not transfer token from contract account" );
     eosio_assert( to != get_self(), "do not transfer token to contract account" );
 
-    // Ensure 'to' account exists
+    /// Ensure 'to' account exists
     eosio_assert( is_account( to ), "to account does not exist");
 
-	// Check memo size and print
+	/// Check memo size and print
     eosio_assert( memo.size() <= 256, "memo has more than 256 bytes" );
 
-    // Ensure token ID exists
+    /// Ensure token ID exists
     auto send_token = tokens.find( id );
     eosio_assert( send_token != tokens.end(), "token with specified ID does not exist" );
 
-	// Ensure owner owns token
+	/// Ensure owner owns token
     eosio_assert( send_token->owner == from, "sender does not own token with specified ID");
 
-	// Notify both recipients
+	/// Notify both recipients
     require_recipient( from );
     require_recipient( to );
 
-    // Transfer NFT from sender to receiver
+    /// Transfer NFT from sender to receiver
     tokens.modify( send_token, from, [&]( auto& data ) {
         data.owner = to;
     });
 
-    // Change balance of both accounts
+    /// Change balance of both accounts
     sub_balance( from, send_token->sym );
     add_balance( to, send_token->sym, from );
 }
 
 void pcs::transfer( name from, name to, symbol_code sym, string memo ) {
-    // Ensure authorized to send from account
+    /// Ensure authorized to send from account
     eosio_assert( from != to, "cannot transfer to self" );
     require_auth( from );
     eosio_assert( from != get_self(), "do not transfer token from contract account" );
     eosio_assert( to != get_self(), "do not transfer token to contract account" );
 
-    // Ensure 'to' account exists
+    /// Ensure 'to' account exists
     eosio_assert( is_account( to ), "to account does not exist");
 
-    // Check memo size and print
+    /// Check memo size and print
     eosio_assert( memo.size() <= 256, "memo has more than 256 bytes" );
 
-    // 所持トークンを1つ探す
+    /// 所持トークンを1つ探す
     uint64_t id = pcs::find_own_token( from, sym );
 
-	// Notify both recipients
+	/// Notify both recipients
     require_recipient( from );
 	require_recipient( to );
 
@@ -150,38 +149,38 @@ void pcs::burn( name owner, uint64_t token_id ) {
     require_auth( owner );
     eosio_assert( owner != get_self(), "does not burn token by contract account" );
 
-    // Find token to burn
+    /// Find token to burn
     auto burn_token = tokens.find( token_id );
     eosio_assert( burn_token != tokens.end(), "token with id does not exist" );
     eosio_assert( burn_token->owner == owner, "token not owned by account" );
 
 	symbol_code sym = burn_token->sym;
 
-	// Remove token from tokens table
+	/// Remove token from tokens table
     tokens.erase( burn_token );
 
-    // Lower balance from owner
+    /// Lower balance from owner
     sub_balance( owner, sym );
 
-    // Lower supply from currency
+    /// Lower supply from currency
     sub_supply( sym, 1 );
 }
 
-// ram payer を token 発行者から所有者に変更する
+/// ram payer を token 発行者から所有者に変更する
 void pcs::setrampayer( name payer, uint64_t token_id ) {
 	require_auth( payer );
 
-	// Ensure token ID exists
+	/// Ensure token ID exists
 	auto payer_token = tokens.find( token_id );
 	eosio_assert( payer_token != tokens.end(), "token with specified ID does not exist" );
 
-	// Ensure payer owns token
+	/// Ensure payer owns token
 	eosio_assert( payer_token->owner == payer, "payer does not own token with specified ID");
 
-	// Notify payer
+	/// Notify payer
 	require_recipient( payer );
 
-	// Set owner as a RAM payer
+	/// Set owner as a RAM payer
     const auto& token = *payer_token;
 	tokens.modify( payer_token, payer, [&](auto& data) {
 		data.id = token.id;
@@ -199,14 +198,14 @@ void pcs::refleshkey( name owner, uint64_t token_id, capi_public_key subkey ) {
     require_auth( owner );
     eosio_assert( owner != get_self(), "do not reflesh key by contract account" );
 
-    // Find token to burn
+    /// Find token to burn
     auto target_token = tokens.find( token_id );
     eosio_assert( target_token != tokens.end(), "token with id does not exist" );
     eosio_assert( target_token->owner == owner, "token not owned by account" );
 
     tokens.modify( target_token, owner, [&](auto& data) {
         data.subkey = subkey;
-        data.active = 1; // lock 解除をついでに行う
+        data.active = 1; /// lock 解除をついでに行う
     });
 
     require_recipient( owner );
@@ -219,9 +218,9 @@ void pcs::lock( name accuser, uint64_t token_id, string data, capi_signature sig
     auto target_token = tokens.find( token_id );
     eosio_assert( target_token != tokens.end(), "token with id does not exist" );
 
-    // 署名検証
-    // target_token に記載された public key に対応する
-    // private key を知っている人のみがロックの権限をもつ
+    /// 署名検証
+    /// target_token に記載された public key に対応する
+    /// private key を知っている人のみがロックの権限をもつ
     capi_public_key pk = target_token->subkey;
     capi_checksum256 digest;
     sha256(&data[0], data.size(), &digest);
@@ -241,10 +240,10 @@ void pcs::servebid( name owner, uint64_t token_id, asset price, string memo ) {
     eosio_assert( target_token != tokens.end(), "token with id does not exist" );
     eosio_assert( target_token->owner == owner, "token not owned by account" );
 
-    // Check memo size and print
+    /// Check memo size and print
     eosio_assert( memo.size() <= 256, "memo has more than 256 bytes" );
 
-    // price に指定した asset が EOS であることの確認
+    /// price に指定した asset が EOS であることの確認
     eosio_assert( price.symbol == symbol( "EOS", 4 ), "allow only EOS as price" );
 
     bids.emplace( owner, [&]( auto& data ) {
@@ -255,10 +254,10 @@ void pcs::servebid( name owner, uint64_t token_id, asset price, string memo ) {
     });
 
     tokens.modify( target_token, owner, [&]( auto& data ) {
-        data.owner = get_self(); // 所有者をコントラクトアカウントに
+        data.owner = get_self(); /// 所有者をコントラクトアカウントに
     });
 
-    // Lower balance from owner
+    /// Lower balance from owner
     sub_balance( owner, target_token->sym );
 }
 
@@ -284,22 +283,22 @@ void pcs::buy( name buyer, uint64_t token_id, string memo ) {
     eosio_assert( target_token != tokens.end(), "token with id does not exist" );
     eosio_assert( bid_order != bids.end(), "token with id does not exist" );
 
-    // Check memo size and print
+    /// Check memo size and print
     eosio_assert( memo.size() <= 256, "memo has more than 256 bytes" );
 
     bids.erase( bid_order );
 
     tokens.modify( target_token, buyer, [&]( auto& data ) {
         data.owner = buyer;
-        data.active = 0; // lock until reflesh key for safety
+        data.active = 0; /// lock until reflesh key for safety
     });
 
     add_balance( buyer, bid_order->sym, buyer );
 
-    // 支払い
+    /// 支払い
     sub_deposit( buyer, bid_order->price );
 
-    // 売り手に送金
+    /// 売り手に送金
     string message = "executed as the inline action in pcs::buy of " + get_self().to_string();
     transfer_eos( bid_order->owner, bid_order->price, message );
 }
@@ -400,7 +399,7 @@ void pcs::receive() {
 }
 
 void pcs::set_uri( name user, symbol_code sym, string uri ) {
-    // Check uri size
+    /// Check uri size
     eosio_assert( uri.size() <= 256, "uri has more than 256 bytes" );
 
     pv_count_index pv_count_table( get_self(), sym.raw() );
@@ -415,10 +414,10 @@ void pcs::set_uri( name user, symbol_code sym, string uri ) {
 void pcs::resisteruris( name user, symbol_code sym, vector<string> uris ) {
     require_auth( user );
 
-    // Ensure valid symbol
+    /// Ensure valid symbol
     eosio_assert( sym.is_valid(), "invalid symbol name" );
 
-    // Ensure currency has been created
+    /// Ensure currency has been created
     currency_index currency_table( get_self(), sym.raw() );
     auto existing_currency = currency_table.find( sym.raw() );
     eosio_assert( existing_currency != currency_table.end(), "token with symbol does not exist. create token before issue" );
@@ -429,20 +428,20 @@ void pcs::resisteruris( name user, symbol_code sym, vector<string> uris ) {
 }
 
 void pcs::setpvid( name claimer, symbol_code sym, uint64_t uri_id, uint64_t count ) {
-    // コントラクトアカウントのみが呼び出せる
+    /// コントラクトアカウントのみが呼び出せる
     require_auth( claimer );
     eosio_assert( claimer == get_self(), "setpvid action must execute by the contract account" );
 
-    // Ensure valid symbol
+    /// Ensure valid symbol
     eosio_assert( sym.is_valid(), "invalid symbol name" );
 
-    // すでに指定した uri に関する pv のデータがあることを確認
+    /// すでに指定した uri に関する pv のデータがあることを確認
     uint64_t symbol_name = sym.raw();
     pv_count_index pv_count_table( get_self(), symbol_name );
     auto pv_data = pv_count_table.find( uri_id );
     eosio_assert( pv_data != pv_count_table.end() ,"this uri is not exist in the pv count table" );
 
-    // overflow 対策
+    /// overflow 対策
     eosio_assert( pv_data->count + count > pv_data->count, "pv count overflow! so revert state." );
 
     pv_count_table.modify( pv_data, claimer, [&]( auto& data ) {
@@ -456,14 +455,14 @@ void pcs::setpvdata( name claimer, symbol_code sym, string uri, uint64_t count )
 }
 
 void pcs::removepvid( name claimer, symbol_code sym, uint64_t uri_id ) {
-    // コントラクトアカウントのみが呼び出せる
+    /// コントラクトアカウントのみが呼び出せる
     require_auth( claimer );
     eosio_assert( claimer == get_self(), "removepvid action must execute by the contract account" );
 
-    // Ensure valid symbol
+    /// Ensure valid symbol
     eosio_assert( sym.is_valid(), "invalid symbol name" );
 
-    // すでに指定した uri に関する pv のデータがあることを確認
+    /// すでに指定した uri に関する pv のデータがあることを確認
     uint64_t symbol_name = sym.raw();
     pv_count_index pv_count_table( get_self(), symbol_name );
     auto pv_data = pv_count_table.find( uri_id );
@@ -481,17 +480,17 @@ void pcs::removepvdata( name claimer, symbol_code sym, string uri ) {
 void pcs::setoffer( name payer, symbol_code sym, string uri, asset price ) {
     require_auth( payer );
 
-    // get timestamp
+    /// get timestamp
     uint64_t now = current_time();
 
-    // Ensure valid symbol
+    /// Ensure valid symbol
     eosio_assert( sym.is_valid(), "invalid symbol name" );
 
-    // オファー料金が前もってコントラクトに振り込まれているか確認
+    /// オファー料金が前もってコントラクトに振り込まれているか確認
     auto balance_data = eosbt.find( payer.value );
     eosio_assert( balance_data != eosbt.end(), "your balance data do not exist" );
 
-    // Ensure currency has been created
+    /// Ensure currency has been created
     currency_index currency_table( get_self(), sym.raw() );
     auto existing_currency = currency_table.find( sym.raw() );
     eosio_assert( existing_currency != currency_table.end(), "token with symbol does not exist. create token before issue" );
@@ -508,13 +507,13 @@ void pcs::setoffer( name payer, symbol_code sym, string uri, asset price ) {
 void pcs::acceptoffer( name manager, symbol_code sym, uint64_t offer_id ) {
     require_auth( manager );
 
-    // get timestamp
+    /// get timestamp
     uint64_t now = current_time();
 
-    // Ensure valid symbol
+    /// Ensure valid symbol
     eosio_assert( sym.is_valid(), "invalid symbol name" );
 
-    // Ensure currency has been created
+    /// Ensure currency has been created
     currency_index currency_table( get_self(), sym.raw() );
     auto existing_currency = currency_table.find( sym.raw() );
     // eosio_assert( existing_currency != currency_table.end(), "token with symbol does not exist. create token before issue" );
@@ -528,16 +527,16 @@ void pcs::acceptoffer( name manager, symbol_code sym, uint64_t offer_id ) {
     string uri = offer_data->uri;
 
 
-    // オファー料金が前もってコントラクトに振り込まれているか確認
+    /// オファー料金が前もってコントラクトに振り込まれているか確認
     auto balance_data = eosbt.find( payer.value );
     eosio_assert( balance_data != eosbt.end(), "your balance data do not exist" );
 
-    // 受け入れられた offer は content に昇華する
+    /// 受け入れられた offer は content に昇華する
     offer_list.erase( offer_data );
 
     content_index content_list( get_self(), sym.raw() );
 
-    // コンテンツが増えてきたら、古いものから消去する
+    /// コンテンツが増えてきたら、古いものから消去する
     // if ( content_list.size() > 5 ) { // size メンバは存在しないので別の方法を探す
     //     auto oldest_content = content_list.get_index<name("bytimestamp")>().lower_bound(0);
     //     content_list.erase( oldest_content );
@@ -578,10 +577,10 @@ void pcs::removeoffer( name payer, symbol_code sym, uint64_t offer_id ) {
 void pcs::stopcontent( name manager, symbol_code sym, uint64_t content_id ) {
     require_auth( manager );
 
-    // Ensure valid symbol
+    /// Ensure valid symbol
     eosio_assert( sym.is_valid(), "invalid symbol name" );
 
-    // Ensure currency has been created
+    /// Ensure currency has been created
     currency_index currency_table( get_self(), sym.raw() );
     auto existing_currency = currency_table.find( sym.raw() );
     // eosio_assert( existing_currency != currency_table.end(), "token with symbol does not exist. create token before issue" );
@@ -596,10 +595,10 @@ void pcs::stopcontent( name manager, symbol_code sym, uint64_t content_id ) {
 void pcs::dropcontent( name manager, symbol_code sym, uint64_t content_id ) {
     require_auth( manager );
 
-    // Ensure valid symbol
+    /// Ensure valid symbol
     eosio_assert( sym.is_valid(), "invalid symbol name" );
 
-    // Ensure currency has been created
+    /// Ensure currency has been created
     currency_index currency_table( get_self(), sym.raw() );
     auto existing_currency = currency_table.find( sym.raw() );
     // eosio_assert( existing_currency != currency_table.end(), "token with symbol does not exist. create token before issue" );
@@ -740,10 +739,10 @@ uint64_t pcs::find_own_token( name owner, symbol_code sym ) {
 }
 
 uint64_t pcs::find_pvdata_by_uri( symbol_code sym, string uri ) {
-    // Ensure valid symbol
+    /// Ensure valid symbol
     eosio_assert( sym.is_valid(), "invalid symbol name" );
 
-    // Ensure currency has been created
+    /// Ensure currency has been created
     uint64_t symbol_name = sym.raw();
     currency_index currency_table( get_self(), symbol_name );
     auto existing_currency = currency_table.find( symbol_name );
@@ -752,10 +751,10 @@ uint64_t pcs::find_pvdata_by_uri( symbol_code sym, string uri ) {
     pv_count_index pv_count_table( get_self(), symbol_name );
     auto pv_table = pv_count_table.get_index<name("byuriid")>();
 
-    // 0 でいいのかは要検討
+    /// 0 でいいのかは要検討
     auto it = pv_table.lower_bound(0);
 
-    // uri でテーブルを検索
+    /// uri でテーブルを検索
     bool found = false;
     uint64_t uri_id = 0;
     for (; it != pv_table.end(); ++it) {
@@ -783,12 +782,12 @@ extern "C" {
         } else if ( code == receiver ) {
             switch( action ) {
                EOSIO_DISPATCH_HELPER( pcs,
-                   (create) // currency
-                   (issue)(transferid)(transfer)(burn) // token
-                   (setrampayer)(refleshkey)(lock) // token
-                   (servebid)(buy)(cancelbid) // bid
-                   (resisteruris)(setpvid)(setpvdata)(removepvid)(removepvdata) // pvcount
-                   (setoffer)(acceptoffer)(removeoffer)(stopcontent) // offer, content
+                   (create) /// currency
+                   (issue)(transferid)(transfer)(burn) /// token
+                   (setrampayer)(refleshkey)(lock) /// token
+                   (servebid)(buy)(cancelbid) /// bid
+                   (resisteruris)(setpvid)(setpvdata)(removepvid)(removepvdata) /// pvcount
+                   (setoffer)(acceptoffer)(removeoffer)(stopcontent) /// offer, content
                );
             }
         }
