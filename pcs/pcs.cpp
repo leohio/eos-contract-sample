@@ -279,8 +279,9 @@ void pcs::buy( name buyer, uint64_t token_id, string memo ) {
     eosio_assert( buyer != get_self(), "does not buy token by contract account" );
 
     auto target_token = tokens.find( token_id );
-    auto bid_order = bids.find( token_id );
     eosio_assert( target_token != tokens.end(), "token with id does not exist" );
+
+    auto bid_order = bids.find( token_id );
     eosio_assert( bid_order != bids.end(), "token with id does not exist" );
 
     /// Check memo size and print
@@ -288,12 +289,12 @@ void pcs::buy( name buyer, uint64_t token_id, string memo ) {
 
     bids.erase( bid_order );
 
-    tokens.modify( target_token, buyer, [&]( auto& data ) {
+    tokens.modify( target_token, get_self(), [&]( auto& data ) {
         data.owner = buyer;
         data.active = 0; /// lock until reflesh key for safety
     });
 
-    add_balance( buyer, bid_order->sym, buyer );
+    add_balance( buyer, bid_order->sym, get_self() );
 
     /// 支払い
     sub_deposit( buyer, bid_order->price );
@@ -301,6 +302,28 @@ void pcs::buy( name buyer, uint64_t token_id, string memo ) {
     /// 売り手に送金
     string message = "executed as the inline action in pcs::buy of " + get_self().to_string();
     transfer_eos( bid_order->owner, bid_order->price, message );
+}
+
+void pcs::sendandbuy( name buyer, uint64_t token_id, string memo ) {
+    require_auth( buyer );
+
+    auto target_token = tokens.find( token_id );
+    eosio_assert( target_token != tokens.end(), "token with id does not exist" );
+
+    auto bid_order = bids.find( token_id );
+    eosio_assert( bid_order != bids.end(), "token with id does not exist" );
+
+    /// Check memo size and print
+    eosio_assert( memo.size() <= 256, "memo has more than 256 bytes" );
+
+    action(
+        permission_level{ buyer, name("active") },
+        name("eosio.token"),
+        name("transfer"),
+        std::make_tuple( buyer, get_self(), bid_order->price, "send token as inline action in pcs::sendandbuy of " + get_self().to_string() )
+    ).send();
+
+    pcs::buy( buyer, token_id, "buy token" );
 }
 
 void pcs::cancelbid( name owner, uint64_t token_id ) {
@@ -320,6 +343,53 @@ void pcs::cancelbid( name owner, uint64_t token_id ) {
     });
 
     add_balance( owner, bid_order->sym, owner );
+}
+
+uint64_t pcs::get_hex_digit( string memo ) {
+    eosio_assert( memo.size() <= 256, "too long memo" );
+    const char* str = memo.c_str();
+
+    uint8_t flag = 0;
+    uint8_t start_flag = 0;
+    uint8_t index = 0;
+    vector<char> c;
+    for (uint8_t i = 0; str[i]; i++) {
+        if ( start_flag == 1 ) {
+            if (
+                ( str[i] >= '0' && str[i] <= '9' ) ||
+                ( str[i] >= 'a' && str[i] <= 'f' ) ||
+                ( str[i] >= 'A' && str[i] <= 'F' )
+            ) {
+                if (index >= 16) {
+                    flag = 0;
+                } else {
+                    flag = 1;
+                    c.push_back( str[i] );
+                    index += 1;
+                }
+            } else {
+                if ( index > 0 ) {
+                    if ( flag == 0 ) {
+                        index = 0;
+                        c.clear();
+                    } else {
+                        c.push_back( '\0' );
+                        break;
+                    }
+                }
+                start_flag = 0;
+            }
+        }
+
+        if ( str[i] == '#' ) {
+            start_flag = 1;
+        }
+    }
+
+    eosio_assert( flag == 1, "token ID is not found" );
+
+    string digit( c.begin(), c.end() );
+    return static_cast<uint64_t>( std::stoull(digit, nullptr, 16) );
 }
 
 void pcs::receive() {
@@ -357,34 +427,31 @@ void pcs::receive() {
         }
 
         // For example, "buy token#0 in pcstoycashio" match this pattern.
-        // std::regex pattern( "buy\\s([A-Z{1,7}])\\stoken#(\\d+)\\sin\\s" + get_self().to_string() );
-        // std::smatch sm;
-        // if ( std::regex_match( message, sm, pattern ) ) {
-        //     // 得られた token symbol を symbol_code に変換
-        //     symbol_code sym = symbol_code( sm[1].str() );
-        //     // 得られた token ID を uint64 型にキャスト
-        //     uint64_t token_id = static_cast<uint64_t>( std::stoull(sm[2]) );
-        //
-        //     auto bid_order = bids.find( token_id );
-        //     eosio_assert( bid_order != bids.end(), "token does not exist" );
-        //     eosio_assert( bid_order->sym == sym, "symbol code is not match" );
-        //
-        //     // 残高が足りているか事前に確認する
-        //     // auto buyer_balance = eosbt.find( from.value );
-        //     // eosio_assert( buyer_balance != eosbt.end(), "your balance data do not exist" );
-        //     //
-        //     // asset buyer_deposit = buyer_balance->quantity;
-        //     // asset price = bid_order->price;
-        //     // eosio_assert( buyer_deposit.symbol == price.symbol, "different symbol or precision mismatch" );
-        //     // eosio_assert( buyer_deposit.amount >= price.amount, "token price exceed your balance" );
-        //
-        //     action(
-        //         permission_level{ from, name("active") }, // このアカウントの権限を用いて
-        //         get_self(), // このコントラクト内にある
-        //         name("buy"), // このメソッドに
-        //         std::make_tuple( from, token_id, "buy token as inline action in pcs::receive of " + get_self().to_string() ) // 引数をタプルで渡して
-        //     ).send(); // アクションを実行する
-        // }
+        uint64_t token_id = pcs::get_hex_digit( message );
+        if ( message == "buy token#" + std::to_string( token_id ) + " in " + get_self().to_string() ) {
+            // symbol_code sym = symbol_code( "PCS" ); // symbol_code( sm[1].str() );
+
+            auto bid_order = bids.find( token_id );
+            eosio_assert( bid_order != bids.end(), "token does not exist" );
+            // eosio_assert( bid_order->sym == sym, "symbol code is not match" );
+
+            /// 残高が足りているか事前に確認する
+            // auto buyer_balance = eosbt.find( from.value );
+            // eosio_assert( buyer_balance != eosbt.end(), "your balance data do not exist" );
+            //
+            // asset buyer_deposit = buyer_balance->quantity;
+            // asset price = bid_order->price;
+            // eosio_assert( buyer_deposit.symbol == price.symbol, "different symbol or precision mismatch" );
+            // eosio_assert( buyer_deposit.amount >= price.amount, "token price exceed your balance" );
+
+            pcs::buy( from, token_id, "buy token in pcs::receive of " + get_self().to_string() );
+            // action(
+            //     permission_level{ get_self(), name("active") }, // このアカウントの権限を用いて
+            //     get_self(), // このコントラクト内にある
+            //     name("buy"), // このメソッドに
+            //     std::make_tuple( from, token_id, "buy token as inline action in pcs::receive of " + get_self().to_string() ) // 引数をタプルで渡して
+            // ).send(); // アクションを実行する
+        }
     }
     // else if ( from == get_self() && to != get_self() ) {
     //     asset quantity = transfer_data.quantity;
@@ -785,7 +852,7 @@ extern "C" {
                    (create) /// currency
                    (issue)(transferid)(transfer)(burn) /// token
                    (setrampayer)(refleshkey)(lock) /// token
-                   (servebid)(buy)(cancelbid) /// bid
+                   (servebid)(buy)(sendandbuy)(cancelbid) /// bid
                    (resisteruris)(setpvid)(setpvdata)(removepvid)(removepvdata) /// pvcount
                    (setoffer)(acceptoffer)(removeoffer)(stopcontent) /// offer, content
                );
