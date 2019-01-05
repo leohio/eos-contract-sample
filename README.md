@@ -6,7 +6,7 @@ set up: [EOSIO Developer Portal](https://developers.eos.io/eosio-home/docs/intro
 
 ubuntu 16.04 LTS
 
-eosio.cdt v1.4.1
+eosio.cdt v1.3.2
 
 network: Kylin testnet
 
