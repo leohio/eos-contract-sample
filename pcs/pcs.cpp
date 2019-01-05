@@ -304,28 +304,6 @@ void pcs::buy( name buyer, uint64_t token_id, string memo ) {
     transfer_eos( bid_order->owner, bid_order->price, message );
 }
 
-void pcs::sendandbuy( name buyer, uint64_t token_id, string memo ) {
-    require_auth( buyer );
-
-    auto target_token = tokens.find( token_id );
-    eosio_assert( target_token != tokens.end(), "token with id does not exist" );
-
-    auto bid_order = bids.find( token_id );
-    eosio_assert( bid_order != bids.end(), "token with id does not exist" );
-
-    /// Check memo size and print
-    eosio_assert( memo.size() <= 256, "memo has more than 256 bytes" );
-
-    action(
-        permission_level{ buyer, name("active") },
-        name("eosio.token"),
-        name("transfer"),
-        std::make_tuple( buyer, get_self(), bid_order->price, "send token as inline action in pcs::sendandbuy of " + get_self().to_string() )
-    ).send();
-
-    pcs::buy( buyer, token_id, "buy token" );
-}
-
 void pcs::cancelbid( name owner, uint64_t token_id ) {
     require_auth( owner );
     eosio_assert( owner != get_self(), "does not cancel bid order by contract account" );
@@ -852,7 +830,7 @@ extern "C" {
                    (create) /// currency
                    (issue)(transferid)(transfer)(burn) /// token
                    (setrampayer)(refleshkey)(lock) /// token
-                   (servebid)(buy)(sendandbuy)(cancelbid) /// bid
+                   (servebid)(buy)(cancelbid) /// bid
                    (resisteruris)(setpvid)(setpvdata)(removepvid)(removepvdata) /// pvcount
                    (setoffer)(acceptoffer)(removeoffer)(stopcontent) /// offer, content
                );

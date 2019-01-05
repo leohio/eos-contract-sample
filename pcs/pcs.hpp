@@ -34,7 +34,6 @@ class [[eosio::contract]] pcs : public eosio::contract {
         [[eosio::action]] void         lock( name accuser, uint64_t token_id, string data, capi_signature sig );
         [[eosio::action]] void     servebid( name owner, uint64_t token_id, asset price, string memo );
         [[eosio::action]] void          buy( name buyer, uint64_t token_id, string memo );
-        [[eosio::action]] void   sendandbuy( name buyer, uint64_t token_id, string memo );
         [[eosio::action]] void    cancelbid( name owner, uint64_t token_id );
         [[eosio::action]] void resisteruris( name user, symbol_code sym, vector<string> uris );
         [[eosio::action]] void      setpvid( name claimer, symbol_code sym, uint64_t uri_id, uint64_t count );
