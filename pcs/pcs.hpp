@@ -24,25 +24,25 @@ class [[eosio::contract]] pcs : public eosio::contract {
         **/
 
         [[eosio::action]] void       create( name issuer, symbol_code sym );
-        [[eosio::action]] void      destroy( name claimer, symbol_code sym );
-        [[eosio::action]] void        issue( name user, symbol_code sym, vector<capi_public_key> subkeys, string memo );
-        [[eosio::action]] void   transferid( name from, name to, symbol_code sym, uint64_t id, string memo );
+        [[eosio::action]] void      destroy( symbol_code sym );
+        [[eosio::action]] void        issue( name user, asset quantity, string memo );
+        [[eosio::action]] void  issueunlock( name user, asset quantity, vector<capi_public_key> subkeys, string memo );
+        [[eosio::action]] void   transferid( name from, name to, uint64_t id, string memo );
 	    [[eosio::action]] void     transfer( name from, name to, symbol_code sym, string memo );
         [[eosio::action]] void         burn( name owner, uint64_t token_id );
-	    [[eosio::action]] void  setrampayer( name payer, uint64_t token_id );
         [[eosio::action]] void   refleshkey( name owner, uint64_t token_id, capi_public_key subkey );
-        [[eosio::action]] void         lock( name accuser, uint64_t token_id, string data, capi_signature sig );
+        [[eosio::action]] void         lock( name claimer, uint64_t token_id, string data, capi_signature sig );
         [[eosio::action]] void     servebid( name owner, uint64_t token_id, asset price, string memo );
         [[eosio::action]] void          buy( name buyer, uint64_t token_id, string memo );
         [[eosio::action]] void    cancelbid( name owner, uint64_t token_id );
         [[eosio::action]] void resisteruris( name user, symbol_code sym, vector<string> uris );
-        [[eosio::action]] void      setpvid( name claimer, symbol_code sym, uint64_t uri_id, uint64_t count );
-        [[eosio::action]] void    setpvdata( name claimer, symbol_code sym, string uri, uint64_t count );
-        [[eosio::action]] void   removepvid( name claimer, symbol_code sym, uint64_t uri_id );
-        [[eosio::action]] void removepvdata( name claimer, symbol_code sym, string uri );
-        [[eosio::action]] void     setoffer( name payer, symbol_code sym, string uri, asset price );
+        [[eosio::action]] void      setpvid( symbol_code sym, uint64_t uri_id, uint64_t count );
+        [[eosio::action]] void    setpvdata( symbol_code sym, string uri, uint64_t count );
+        [[eosio::action]] void   removepvid( symbol_code sym, uint64_t uri_id );
+        [[eosio::action]] void removepvdata( symbol_code sym, string uri );
+        [[eosio::action]] void     setoffer( name provider, symbol_code sym, string uri, asset price );
         [[eosio::action]] void  acceptoffer( name manager, symbol_code sym, uint64_t offer_id );
-        [[eosio::action]] void  removeoffer( name payer, symbol_code sym, uint64_t offer_id );
+        [[eosio::action]] void  removeoffer( name provider, symbol_code sym, uint64_t offer_id );
         [[eosio::action]] void  stopcontent( name manager, symbol_code sym, uint64_t content_id );
         [[eosio::action]] void  dropcontent( name manager, symbol_code sym, uint64_t content_id );
         [[eosio::action]] void      receive();
@@ -112,26 +112,26 @@ class [[eosio::contract]] pcs : public eosio::contract {
         struct [[eosio::table]] offer {
             uint64_t id;
             asset price;
-            name payer;
+            name provider;
             string uri;
 
             uint64_t primary_key() const { return id; }
             asset get_price() const { return price; }
-            uint64_t get_payer() const { return payer.value; }
+            uint64_t get_provider() const { return provider.value; }
             string get_uri() const { return uri; }
         };
 
         struct [[eosio::table]] content {
             uint64_t id;
             asset price;
-            name payer;
+            name provider;
             string uri;
             uint64_t timestamp;
             uint8_t active;
 
             uint64_t primary_key() const { return id; }
             asset get_price() const { return price; }
-            uint64_t get_payer() const { return payer.value; }
+            uint64_t get_provider() const { return provider.value; }
             string get_uri() const { return uri; }
             uint64_t get_timestamp() const { return timestamp; }
             uint8_t get_active() const { return active; }
@@ -199,16 +199,17 @@ class [[eosio::contract]] pcs : public eosio::contract {
          * Private Function
         **/
 
-        void mint_token( name user, symbol_code sym, capi_public_key subkey, name ram_payer );
+        void mint_token( name user, symbol_code sym, name ram_payer );
+        void mint_unlock_token( name user, symbol_code sym, capi_public_key subkey, name ram_payer );
         uint64_t get_hex_digit( string memo );
         void transfer_eos( name to, asset value, string memo );
         void set_uri( name user, symbol_code sym, string uri );
         void sub_eos_balance( name owner, asset quantity );
         void add_eos_balance( name owner, asset quantity, name ram_payer );
-        void sub_balance( name owner, symbol_code sym );
-        void add_balance( name owner, symbol_code sym, name ram_payer );
-        void sub_supply( symbol_code sym, uint64_t value );
-        void add_supply( symbol_code sym, uint64_t value );
+        void decrease_balance( name owner, symbol_code sym );
+        void add_balance( name owner, asset quantity, name ram_payer );
+        void decrease_supply( symbol_code sym );
+        void add_supply( asset quantity );
         void sub_deposit( name user, asset quantity );
         uint64_t find_own_token( name owner, symbol_code sym );
         uint64_t find_pvdata_by_uri( symbol_code sym, string uri );

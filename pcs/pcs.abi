@@ -1,5 +1,5 @@
 {
-    "____comment": "This file was generated with eosio-abigen. DO NOT EDIT Sat Jan  5 18:35:54 2019",
+    "____comment": "This file was generated with eosio-abigen. DO NOT EDIT Sun Jan  6 23:28:32 2019",
     "version": "eosio::abi/1.0",
     "structs": [
         {
@@ -103,7 +103,7 @@
                     "type": "asset"
                 },
                 {
-                    "name": "payer",
+                    "name": "provider",
                     "type": "name"
                 },
                 {
@@ -139,10 +139,6 @@
             "base": "",
             "fields": [
                 {
-                    "name": "claimer",
-                    "type": "name"
-                },
-                {
                     "name": "sym",
                     "type": "symbol_code"
                 }
@@ -175,8 +171,26 @@
                     "type": "name"
                 },
                 {
-                    "name": "sym",
-                    "type": "symbol_code"
+                    "name": "quantity",
+                    "type": "asset"
+                },
+                {
+                    "name": "memo",
+                    "type": "string"
+                }
+            ]
+        },
+        {
+            "name": "issueunlock",
+            "base": "",
+            "fields": [
+                {
+                    "name": "user",
+                    "type": "name"
+                },
+                {
+                    "name": "quantity",
+                    "type": "asset"
                 },
                 {
                     "name": "subkeys",
@@ -193,7 +207,7 @@
             "base": "",
             "fields": [
                 {
-                    "name": "accuser",
+                    "name": "claimer",
                     "type": "name"
                 },
                 {
@@ -223,7 +237,7 @@
                     "type": "asset"
                 },
                 {
-                    "name": "payer",
+                    "name": "provider",
                     "type": "name"
                 },
                 {
@@ -300,7 +314,7 @@
             "base": "",
             "fields": [
                 {
-                    "name": "payer",
+                    "name": "provider",
                     "type": "name"
                 },
                 {
@@ -318,10 +332,6 @@
             "base": "",
             "fields": [
                 {
-                    "name": "claimer",
-                    "type": "name"
-                },
-                {
                     "name": "sym",
                     "type": "symbol_code"
                 },
@@ -335,10 +345,6 @@
             "name": "removepvid",
             "base": "",
             "fields": [
-                {
-                    "name": "claimer",
-                    "type": "name"
-                },
                 {
                     "name": "sym",
                     "type": "symbol_code"
@@ -394,7 +400,7 @@
             "base": "",
             "fields": [
                 {
-                    "name": "payer",
+                    "name": "provider",
                     "type": "name"
                 },
                 {
@@ -416,10 +422,6 @@
             "base": "",
             "fields": [
                 {
-                    "name": "claimer",
-                    "type": "name"
-                },
-                {
                     "name": "sym",
                     "type": "symbol_code"
                 },
@@ -438,10 +440,6 @@
             "base": "",
             "fields": [
                 {
-                    "name": "claimer",
-                    "type": "name"
-                },
-                {
                     "name": "sym",
                     "type": "symbol_code"
                 },
@@ -451,20 +449,6 @@
                 },
                 {
                     "name": "count",
-                    "type": "uint64"
-                }
-            ]
-        },
-        {
-            "name": "setrampayer",
-            "base": "",
-            "fields": [
-                {
-                    "name": "payer",
-                    "type": "name"
-                },
-                {
-                    "name": "token_id",
                     "type": "uint64"
                 }
             ]
@@ -562,10 +546,6 @@
                     "type": "name"
                 },
                 {
-                    "name": "sym",
-                    "type": "symbol_code"
-                },
-                {
                     "name": "id",
                     "type": "uint64"
                 },
@@ -616,6 +596,11 @@
         {
             "name": "issue",
             "type": "issue",
+            "ricardian_contract": ""
+        },
+        {
+            "name": "issueunlock",
+            "type": "issueunlock",
             "ricardian_contract": ""
         },
         {
@@ -671,11 +656,6 @@
         {
             "name": "setpvid",
             "type": "setpvid",
-            "ricardian_contract": ""
-        },
-        {
-            "name": "setrampayer",
-            "type": "setrampayer",
             "ricardian_contract": ""
         },
         {
