@@ -7,13 +7,13 @@ using namespace eosio;
 using std::string;
 using std::vector;
 
-class [[eosio::contract]] pcs : public eosio::contract {
+class [[eosio::contract]] cmnt : public eosio::contract {
     public:
         /**
          * Constructor
         **/
 
-        pcs( name receiver, name code, datastream<const char*> ds ):
+        cmnt( name receiver, name code, datastream<const char*> ds ):
     	    contract::contract( receiver, code, ds ),
             tokens( receiver, receiver.value ),
             eosbt( receiver, receiver.value ),
@@ -35,6 +35,16 @@ class [[eosio::contract]] pcs : public eosio::contract {
         [[eosio::action]] void     servebid( name owner, uint64_t token_id, asset price, string memo );
         [[eosio::action]] void          buy( name buyer, uint64_t token_id, string memo );
         [[eosio::action]] void    cancelbid( name owner, uint64_t token_id );
+        [[eosio::action]] void resisteruris( name user, symbol_code sym, vector<string> uris );
+        [[eosio::action]] void      setpvid( symbol_code sym, uint64_t uri_id, uint64_t count );
+        [[eosio::action]] void    setpvdata( symbol_code sym, string uri, uint64_t count );
+        [[eosio::action]] void   removepvid( symbol_code sym, uint64_t uri_id );
+        [[eosio::action]] void removepvdata( symbol_code sym, string uri );
+        [[eosio::action]] void     setoffer( name provider, symbol_code sym, string uri, asset price );
+        [[eosio::action]] void  acceptoffer( name manager, symbol_code sym, uint64_t offer_id );
+        [[eosio::action]] void  removeoffer( name provider, symbol_code sym, uint64_t offer_id );
+        [[eosio::action]] void  stopcontent( name manager, symbol_code sym, uint64_t content_id );
+        [[eosio::action]] void  dropcontent( name manager, symbol_code sym, uint64_t content_id );
         [[eosio::action]] void      receive();
 
         /**
@@ -99,6 +109,44 @@ class [[eosio::contract]] pcs : public eosio::contract {
             uint64_t get_symbol() const { return sym.raw(); }
         };
 
+        struct [[eosio::table]] offer {
+            uint64_t id;
+            asset price;
+            name provider;
+            string uri;
+
+            uint64_t primary_key() const { return id; }
+            asset get_price() const { return price; }
+            uint64_t get_provider() const { return provider.value; }
+            string get_uri() const { return uri; }
+        };
+
+        struct [[eosio::table]] content {
+            uint64_t id;
+            asset price;
+            name provider;
+            string uri;
+            uint64_t timestamp;
+            uint8_t active;
+
+            uint64_t primary_key() const { return id; }
+            asset get_price() const { return price; }
+            uint64_t get_provider() const { return provider.value; }
+            string get_uri() const { return uri; }
+            uint64_t get_timestamp() const { return timestamp; }
+            uint8_t get_active() const { return active; }
+        };
+
+        struct [[eosio::table]] pvcount {
+            uint64_t id;
+            string uri;
+            uint64_t count;
+
+            uint64_t primary_key() const { return id; }
+            string get_uri() const { return uri; }
+            uint64_t get_count() const { return count; }
+        };
+
         struct [[eosio::table]] balance {
             name username;
             asset quantity;
@@ -133,6 +181,15 @@ class [[eosio::contract]] pcs : public eosio::contract {
             indexed_by< name("byowner"), const_mem_fun<order, uint64_t, &order::get_owner> >,
             indexed_by< name("bysymbol"), const_mem_fun<order, uint64_t, &order::get_symbol> > >;
 
+        using pv_count_index = eosio::multi_index< name("pvcount"), pvcount,
+            indexed_by< name("byuriid"), const_mem_fun<pvcount, uint64_t, &pvcount::primary_key> >,
+            indexed_by< name("bycount"), const_mem_fun<pvcount, uint64_t, &pvcount::get_count> > >;
+
+        using offer_index = eosio::multi_index< name("offer"), offer >;
+
+        using content_index = eosio::multi_index< name("content"), content,
+            indexed_by< name("bytime"), const_mem_fun<content, uint64_t, &content::get_timestamp> > >;
+
     private:
 	    token_index tokens;
         balance_index eosbt; // table of eos balance
@@ -146,6 +203,7 @@ class [[eosio::contract]] pcs : public eosio::contract {
         void mint_unlock_token( name user, symbol_code sym, capi_public_key subkey, name ram_payer );
         uint64_t get_hex_digit( string memo );
         void transfer_eos( name to, asset value, string memo );
+        void set_uri( name user, symbol_code sym, string uri );
         void sub_eos_balance( name owner, asset quantity );
         void add_eos_balance( name owner, asset quantity, name ram_payer );
         void decrease_balance( name owner, symbol_code sym );
@@ -155,4 +213,5 @@ class [[eosio::contract]] pcs : public eosio::contract {
         void sub_deposit( name user, asset quantity );
         uint64_t find_own_token( name owner, symbol_code sym );
         uint64_t find_pvdata_by_uri( symbol_code sym, string uri );
+        uint64_t find_offer_by_uri( symbol_code sym, string uri );
 };
