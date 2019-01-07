@@ -49,25 +49,6 @@ cleos push action pcstoycashio burn '["leohioleohio", 0]' -p leohioleohio@active
 cleos get table pcstoycashio pcstoycashio token
 ```
 
-### PV Count Data
-
-```
-# URI を登録する
-cleos push action pcstoycashio resisteruris '["leohioleohio", "PCS", ["https://www.geomerlin.com"]]' -p leohioleohio@active
-
-cleos get table pcstoycashio pcstoycashio pvcount
-
-# PV 数を記録する
-cleos push action pcstoycashio setpvdata '["pcstoycashio", "PCS", "https://www.geomerlin.com", 50]' -p pcstoycashio@active
-
-cleos get table pcstoycashio pcstoycashio pvcount
-
-# URI の登録を解除する （ PV 数は復活しない）
-cleos push action pcstoycashio removepvdata '["pcstoycashio", "PCS", "https://www.geomerlin.com"]' -p pcstoycashio@active
-
-cleos get table pcstoycashio pcstoycashio pvcount
-```
-
 ### DEX
 
 ```
@@ -89,6 +70,25 @@ cleos push action eosio.token transfer '["mokemokecore", "pcstoycashio", "0.1000
 cleos get table pcstoycashio pcstoycashio bid
 cleos get account leohioleohio
 cleos get table pcstoycashio pcstoycashio token
+```
+
+### PV Count Data
+
+```
+# URI を登録する
+cleos push action pcstoycashio resisteruris '["leohioleohio", "PCS", ["https://www.geomerlin.com"]]' -p leohioleohio@active
+
+cleos get table pcstoycashio pcstoycashio pvcount
+
+# PV 数を記録する
+cleos push action pcstoycashio setpvdata '["pcstoycashio", "PCS", "https://www.geomerlin.com", 50]' -p pcstoycashio@active
+
+cleos get table pcstoycashio pcstoycashio pvcount
+
+# URI の登録を解除する （ PV 数は復活しない）
+cleos push action pcstoycashio removepvdata '["pcstoycashio", "PCS", "https://www.geomerlin.com"]' -p pcstoycashio@active
+
+cleos get table pcstoycashio pcstoycashio pvcount
 ```
 
 ### Offer
