@@ -16,6 +16,12 @@ pcs/compile.sh
 pcs/set_contract.sh
 pcs/nodeos.log
 
+# cmnt
+
+cmnt/compile.sh
+cmnt/set_contract.sh
+cmnt/nodeos.log
+
 # helpaccount
 
 helpaccount/compile.sh
