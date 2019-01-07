@@ -145,7 +145,7 @@ void cmnt::transferid( name from, name to, uint64_t id, string memo ) {
     /// Ensure 'to' account exists
     eosio_assert( is_account( to ), "to account does not exist");
 
-	/// Check memo size and print
+	/// Check memo size
     eosio_assert( memo.size() <= 256, "memo has more than 256 bytes" );
 
     /// Ensure token ID exists
@@ -179,7 +179,7 @@ void cmnt::transfer( name from, name to, symbol_code sym, string memo ) {
     /// Ensure 'to' account exists
     eosio_assert( is_account( to ), "to account does not exist");
 
-    /// Check memo size and print
+    /// Check memo size
     eosio_assert( memo.size() <= 256, "memo has more than 256 bytes" );
 
     /// 所持トークンを1つ探す
@@ -193,7 +193,7 @@ void cmnt::transfer( name from, name to, symbol_code sym, string memo ) {
         permission_level{ from, name("active") }, // このアカウントの権限を用いて
         get_self(), // このコントラクト内にある
         name("transferid"), // このメソッドに
-        std::make_tuple( from, to, sym, id, memo ) // 引数をタプルで渡して
+        std::make_tuple( from, to, id, memo ) // 引数をタプルで渡して
     ).send(); // アクションを実行する
 }
 
@@ -275,7 +275,7 @@ void cmnt::servebid( name owner, uint64_t token_id, asset price, string memo ) {
     eosio_assert( target_token != tokens.end(), "token with id does not exist" );
     eosio_assert( target_token->owner == owner, "token not owned by account" );
 
-    /// Check memo size and print
+    /// Check memo size
     eosio_assert( memo.size() <= 256, "memo has more than 256 bytes" );
 
     /// price に指定した asset が EOS であることの確認
@@ -298,7 +298,7 @@ void cmnt::servebid( name owner, uint64_t token_id, asset price, string memo ) {
 
 void cmnt::transfer_eos( name to, asset value, string memo ) {
     eosio_assert( is_account( to ), "to account does not exist" );
-    eosio_assert( value.symbol == symbol( "EOS", 4 ), "symbol of value is not EOS" );
+    eosio_assert( value.symbol == symbol( "EOS", 4 ), "symbol of value must be EOS" );
     eosio_assert( memo.size() <= 256, "memo has more than 256 bytes" );
 
     action(
@@ -319,7 +319,7 @@ void cmnt::buy( name buyer, uint64_t token_id, string memo ) {
     auto bid_order = bids.find( token_id );
     eosio_assert( bid_order != bids.end(), "token with id does not exist" );
 
-    /// Check memo size and print
+    /// Check memo size
     eosio_assert( memo.size() <= 256, "memo has more than 256 bytes" );
 
     bids.erase( bid_order );
@@ -388,8 +388,8 @@ void cmnt::receive() {
 
 void cmnt::withdraw( name user, asset quantity, string memo ) {
     require_auth( user );
-    cmnt::sub_deposit( user, quantity );
-    cmnt::transfer_eos( user, quantity, memo );
+    sub_deposit( user, quantity );
+    transfer_eos( user, quantity, memo );
 }
 
 void cmnt::set_uri( name user, symbol_code sym, string uri ) {
@@ -478,9 +478,16 @@ void cmnt::setoffer( name provider, symbol_code sym, string uri, asset price ) {
     /// Ensure valid symbol
     eosio_assert( sym.is_valid(), "invalid symbol name" );
 
+    eosio_assert( uri.size() <= 256, "uri has more than 256 bytes" );
+
     /// オファー料金が前もってコントラクトに振り込まれているか確認
     auto balance_data = eosbt.find( provider.value );
     eosio_assert( balance_data != eosbt.end(), "your balance data do not exist" );
+
+    asset deposit = balance_data->quantity;
+    eosio_assert( price.amount >= 0, "offer fee must be not negative value" );
+    eosio_assert( price.symbol == symbol( "EOS", 4 ), "symbol of price must be EOS" );
+    eosio_assert( deposit.amount >= price.amount, "offer fee exceed your deposit" );
 
     /// Ensure currency has been created
     currency_index currency_table( get_self(), sym.raw() );
@@ -508,7 +515,8 @@ void cmnt::acceptoffer( name manager, symbol_code sym, uint64_t offer_id ) {
     /// Ensure currency has been created
     currency_index currency_table( get_self(), sym.raw() );
     auto existing_currency = currency_table.find( sym.raw() );
-    // eosio_assert( existing_currency != currency_table.end(), "token with symbol does not exist. create token before issue" );
+    eosio_assert( existing_currency != currency_table.end(), "token with symbol does not exist." );
+    eosio_assert( existing_currency->issuer == manager, "manager must be token issuer" );
 
     offer_index offer_list( get_self(), sym.raw() );
     auto offer_data = offer_list.find( offer_id );
@@ -533,7 +541,7 @@ void cmnt::acceptoffer( name manager, symbol_code sym, uint64_t offer_id ) {
     //     content_list.erase( oldest_content );
     // }
 
-    content_list.emplace( provider, [&]( auto& data ) {
+    content_list.emplace( manager, [&]( auto& data ) {
         data.id = content_list.available_primary_key();
         data.price = price;
         data.provider = provider;
@@ -542,11 +550,8 @@ void cmnt::acceptoffer( name manager, symbol_code sym, uint64_t offer_id ) {
         data.active = 1;
     });
 
-    cmnt::sub_deposit( provider, price );
-
-    name to = existing_currency->issuer;
-    string message = "executed as the inline action in cmnt::acceptoffer of " + get_self().to_string();
-    cmnt::transfer_eos( to, price, message );
+    sub_deposit( provider, price );
+    transfer_eos( manager, price, "executed as the inline action in cmnt::acceptoffer of " + get_self().to_string() );
 }
 
 void cmnt::removeoffer( name provider, symbol_code sym, uint64_t offer_id ) {
@@ -559,10 +564,8 @@ void cmnt::removeoffer( name provider, symbol_code sym, uint64_t offer_id ) {
 
     offer_list.erase( offer_data );
 
-    cmnt::sub_deposit( provider, offer_data->price );
-
-    string message = "executed as the inline action in cmnt::acceptoffer of " + get_self().to_string();
-    cmnt::transfer_eos( provider, offer_data->price, message );
+    sub_deposit( provider, offer_data->price );
+    transfer_eos( provider, offer_data->price, "executed as the inline action in cmnt::acceptoffer of " + get_self().to_string() );
 }
 
 void cmnt::stopcontent( name manager, symbol_code sym, uint64_t content_id ) {
@@ -814,8 +817,8 @@ extern "C" {
                    (refleshkey)(lock) /// token
                    (servebid)(buy)(cancelbid) /// bid
                    (withdraw) /// eos
-                   (resisteruris)(setpvid)(setpvdata)(removepvid)(removepvdata) /// pvcount
                    (setoffer)(acceptoffer)(removeoffer)(stopcontent) /// offer, content
+                   (resisteruris)(setpvid)(setpvdata)(removepvid)(removepvdata) /// pvcount
                );
             }
         }

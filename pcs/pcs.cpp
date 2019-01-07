@@ -145,7 +145,7 @@ void pcs::transferid( name from, name to, uint64_t id, string memo ) {
     /// Ensure 'to' account exists
     eosio_assert( is_account( to ), "to account does not exist");
 
-	/// Check memo size and print
+	/// Check memo size
     eosio_assert( memo.size() <= 256, "memo has more than 256 bytes" );
 
     /// Ensure token ID exists
@@ -179,7 +179,7 @@ void pcs::transfer( name from, name to, symbol_code sym, string memo ) {
     /// Ensure 'to' account exists
     eosio_assert( is_account( to ), "to account does not exist");
 
-    /// Check memo size and print
+    /// Check memo size
     eosio_assert( memo.size() <= 256, "memo has more than 256 bytes" );
 
     /// 所持トークンを1つ探す
@@ -193,7 +193,7 @@ void pcs::transfer( name from, name to, symbol_code sym, string memo ) {
         permission_level{ from, name("active") }, // このアカウントの権限を用いて
         get_self(), // このコントラクト内にある
         name("transferid"), // このメソッドに
-        std::make_tuple( from, to, sym, id, memo ) // 引数をタプルで渡して
+        std::make_tuple( from, to, id, memo ) // 引数をタプルで渡して
     ).send(); // アクションを実行する
 }
 
@@ -274,7 +274,7 @@ void pcs::servebid( name owner, uint64_t token_id, asset price, string memo ) {
     eosio_assert( target_token != tokens.end(), "token with id does not exist" );
     eosio_assert( target_token->owner == owner, "token not owned by account" );
 
-    /// Check memo size and print
+    /// Check memo size
     eosio_assert( memo.size() <= 256, "memo has more than 256 bytes" );
 
     /// price に指定した asset が EOS であることの確認
@@ -318,7 +318,7 @@ void pcs::buy( name buyer, uint64_t token_id, string memo ) {
     auto bid_order = bids.find( token_id );
     eosio_assert( bid_order != bids.end(), "token with id does not exist" );
 
-    /// Check memo size and print
+    /// Check memo size
     eosio_assert( memo.size() <= 256, "memo has more than 256 bytes" );
 
     bids.erase( bid_order );
@@ -363,8 +363,6 @@ void pcs::receive() {
     asset quantity = transfer_data.quantity;
     string message = transfer_data.memo;
 
-    eosio_assert( from == get_self() && to != get_self(), "does not allow to transfer from this contract to another" );
-
     /// Because "receive" action is called when this contract account
     /// is the sender or receiver of "eosio.token::transfer",
     /// so `to == get_self()` is needed.
@@ -382,7 +380,9 @@ void pcs::receive() {
 
             pcs::buy( from, token_id, "buy token in pcs::receive of " + get_self().to_string() );
         }
-    }
+    } /*else if ( from == get_self() && to != get_self() ) {
+        /// TODO: このコントラクトの EOS 残高を check
+    }*/
 }
 
 void pcs::withdraw( name user, asset quantity, string memo ) {
