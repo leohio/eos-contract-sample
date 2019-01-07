@@ -328,14 +328,12 @@ void pcs::buy( name buyer, uint64_t token_id, string memo ) {
         data.active = 0; /// lock until reflesh key for safety
     });
 
+    /// トークンの残高を増やす
     add_balance( buyer, asset{ 1, symbol( bid_order->sym, 0 ) }, get_self() );
 
-    /// 支払い
-    sub_deposit( buyer, bid_order->price );
-
     /// 売り手に送金
-    string message = "executed as the inline action in pcs::buy of " + get_self().to_string();
-    transfer_eos( bid_order->owner, bid_order->price, message );
+    sub_deposit( buyer, bid_order->price );
+    transfer_eos( bid_order->owner, bid_order->price, "executed as the inline action in pcs::buy of " + get_self().to_string() );
 }
 
 void pcs::cancelbid( name owner, uint64_t token_id ) {
@@ -355,6 +353,161 @@ void pcs::cancelbid( name owner, uint64_t token_id ) {
     });
 
     add_balance( owner, asset{ 1, symbol( bid_order->sym, 0 ) }, owner );
+}
+
+void pcs::receive() {
+    /// receive action data of eosio.token::transfer
+    auto transfer_data = eosio::unpack_action_data< transfer_args >();
+    name from = transfer_data.from;
+    name to = transfer_data.to;
+    asset quantity = transfer_data.quantity;
+    string message = transfer_data.memo;
+
+    eosio_assert( from == get_self() && to != get_self(), "does not allow to transfer from this contract to another" );
+
+    /// Because "receive" action is called when this contract account
+    /// is the sender or receiver of "eosio.token::transfer",
+    /// so `to == get_self()` is needed.
+    /// This contract account do not have balance record,
+    /// so `from != get_self()` is needed.
+    if ( to == get_self() && from != get_self() ) {
+        pcs::add_deposit( from, quantity, get_self() );
+
+        // For example, "buy token#0 in pcstoycashio" match this pattern.
+        uint64_t token_id = pcs::get_hex_digit( message );
+
+        if ( message == "buy token#" + std::to_string( token_id ) + " in " + get_self().to_string() ) {
+            auto bid_order = bids.find( token_id );
+            eosio_assert( bid_order != bids.end(), "order does not exist" );
+
+            pcs::buy( from, token_id, "buy token in pcs::receive of " + get_self().to_string() );
+        }
+    }
+}
+
+void pcs::withdraw( name user, asset quantity, string memo ) {
+    require_auth( user );
+    pcs::sub_deposit( user, quantity );
+    pcs::transfer_eos( user, quantity, memo );
+}
+
+void pcs::add_balance( name owner, asset quantity, name ram_payer ) {
+    eosio_assert( quantity.symbol.precision() == 0, "symbol precision must be zero" );
+    eosio_assert( quantity.amount > 0, "invalid quantity" );
+
+	account_index account_table( get_self(), owner.value );
+    auto account_data = account_table.find( quantity.symbol.code().raw() );
+
+    if ( account_data == account_table.end() ) {
+        account_table.emplace( ram_payer, [&]( auto& data ) {
+            data.balance = quantity;
+        });
+    } else {
+        account_table.modify( account_data, get_self(), [&]( auto& data ) {
+            data.balance += quantity;
+        });
+    }
+}
+
+void pcs::decrease_balance( name owner, symbol_code sym ) {
+	account_index account_table( get_self(), owner.value );
+    auto account_data = account_table.find( sym.raw() );
+    eosio_assert( account_data != account_table.end(), "no balance object found" );
+
+    asset balance = account_data->balance;
+
+    eosio_assert( balance.amount >= 1, "overdrawn balance" );
+
+    if ( balance.amount == 1 ) {
+        account_table.erase( account_data );
+    } else {
+        asset burnt_quantity = asset{ 1, symbol( sym, 0 ) };
+
+        account_table.modify( account_data, owner, [&]( auto& data ) {
+            data.balance -= burnt_quantity;
+        });
+    }
+}
+
+void pcs::add_supply( asset quantity ) {
+    eosio_assert( quantity.symbol.precision() == 0, "symbol precision must be zero" );
+    eosio_assert( quantity.amount > 0, "invalid quantity" );
+
+    symbol_code sym = quantity.symbol.code();
+
+    currency_index currency_table( get_self(), sym.raw() );
+    auto current_currency = currency_table.find( sym.raw() );
+
+    currency_table.modify( current_currency, get_self(), [&]( auto& data ) {
+        data.supply += quantity;
+    });
+}
+
+void pcs::decrease_supply( symbol_code sym ) {
+    currency_index currency_table( get_self(), sym.raw() );
+    auto current_currency = currency_table.find( sym.raw() );
+
+    currency_table.modify( current_currency, get_self(), [&]( auto& data ) {
+        data.supply -= asset{ 1, symbol( sym, 0 ) };
+    });
+}
+
+void pcs::add_deposit( name owner, asset quantity, name ram_payer ) {
+    eosio_assert( is_account( owner ), "owner account does not exist" );
+    eosio_assert( is_account( ram_payer ), "ram_payer account does not exist" );
+    eosio_assert( quantity.symbol == symbol( "EOS", 4 ), "must EOS token" );
+
+    auto balance_data = eosbt.find( owner.value );
+
+    if( balance_data == eosbt.end() ) {
+        eosbt.emplace( ram_payer, [&]( auto& data ) {
+            data.username = owner;
+            data.quantity = quantity;
+        });
+    } else {
+        eosbt.modify( balance_data, get_self(), [&]( auto& data ) {
+            data.quantity += quantity;
+        });
+    }
+}
+
+void pcs::sub_deposit( name owner, asset quantity ) {
+    eosio_assert( is_account( owner ), "owner account does not exist");
+    eosio_assert( quantity.symbol == symbol( "EOS", 4 ), "must EOS token" );
+
+    auto balance_data = eosbt.find( owner.value );
+    eosio_assert( balance_data != eosbt.end(), "your balance data do not exist" );
+
+    asset deposit = balance_data->quantity;
+    eosio_assert( deposit.amount >= quantity.amount, "exceed the withdrawable amount" );
+
+    if ( deposit.amount == quantity.amount ) {
+        eosbt.erase( balance_data );
+    } else if ( deposit.amount > quantity.amount ) {
+        eosbt.modify( balance_data, get_self(), [&]( auto& data ) {
+            data.quantity -= quantity;
+        });
+    }
+}
+
+uint64_t pcs::find_own_token( name owner, symbol_code sym ) {
+    auto token_table = tokens.get_index<name("bysymbol")>();
+
+    auto it = token_table.lower_bound( sym.raw() );
+
+    bool found = false;
+    uint64_t token_id = 0;
+    for (; it != token_table.end(); ++it ) {
+        if ( it->sym == sym && it->owner == owner ) {
+            token_id = it->id;
+            found = true;
+            break;
+        }
+    }
+
+    eosio_assert( found, "token is not found or is not owned by account" );
+
+    return token_id;
 }
 
 uint64_t pcs::get_hex_digit( string memo ) {
@@ -405,206 +558,6 @@ uint64_t pcs::get_hex_digit( string memo ) {
     return static_cast<uint64_t>( std::stoull(digit, nullptr, 16) );
 }
 
-void pcs::receive() {
-    /// receive action data of eosio.token::transfer
-    auto transfer_data = eosio::unpack_action_data< transfer_args >();
-    name from = transfer_data.from;
-    name to = transfer_data.to;
-    asset quantity = transfer_data.quantity;
-    string message = transfer_data.memo;
-
-    eosio_assert( from == get_self() && to != get_self(), "does not allow to transfer from this contract to another" );
-
-    /// Because "transfereos" action is called when this contract account
-    /// is the sender or receiver of "eosio.token::transfer",
-    /// so `to == get_self()` is needed.
-    /// This contract account do not have balance record,
-    /// so `from != get_self()` is needed.
-    if ( to == get_self() && from != get_self() ) {
-        eosio_assert( quantity.symbol == symbol( "EOS", 4 ), "receive only EOS token" );
-
-        auto balance_data = eosbt.find( from.value );
-
-        if( balance_data == eosbt.end() ) {
-            eosbt.emplace( get_self(), [&]( auto& data ) {
-                data.username = from;
-                data.quantity = quantity;
-            });
-        } else {
-            asset deposit = balance_data->quantity;
-            eosio_assert( deposit.amount + quantity.amount > deposit.amount, "since occurred overflow, revert the state" );
-
-            /// modify the record of balance_data
-            /// ram payer is this contract account
-            eosbt.modify( balance_data, get_self(), [&]( auto& data ) {
-                data.quantity = deposit + quantity;
-            });
-        }
-
-        // For example, "buy token#0 in pcstoycashio" match this pattern.
-        uint64_t token_id = pcs::get_hex_digit( message );
-        if ( message == "buy token#" + std::to_string( token_id ) + " in " + get_self().to_string() ) {
-            // symbol_code sym = symbol_code( "PCS" ); // symbol_code( sm[1].str() );
-
-            auto bid_order = bids.find( token_id );
-            eosio_assert( bid_order != bids.end(), "token does not exist" );
-            // eosio_assert( bid_order->sym == sym, "symbol code is not match" );
-
-            /// 残高が足りているか事前に確認する
-            // auto buyer_balance = eosbt.find( from.value );
-            // eosio_assert( buyer_balance != eosbt.end(), "your balance data do not exist" );
-            //
-            // asset buyer_deposit = buyer_balance->quantity;
-            // asset price = bid_order->price;
-            // eosio_assert( buyer_deposit.symbol == price.symbol, "different symbol or precision mismatch" );
-            // eosio_assert( buyer_deposit.amount >= price.amount, "token price exceed your balance" );
-
-            pcs::buy( from, token_id, "buy token in pcs::receive of " + get_self().to_string() );
-        }
-    }
-}
-
-void pcs::sub_eos_balance( name owner, asset quantity ) {
-    // eosio_assert( is_account( owner ), "owner account does not exist");
-
-    auto balance_data = eosbt.find( owner.value );
-    eosio_assert( balance_data != eosbt.end(), "your balance data do not exist" );
-
-    asset balance = balance_data->quantity;
-
-    eosio_assert( quantity.symbol == symbol( "EOS", 4 ), "offer fee must pay EOS token");
-    eosio_assert( balance.amount >= quantity.amount, "exceed your balance");
-
-    if ( balance.amount == quantity.amount ) {
-        eosbt.erase( balance_data );
-    } else {
-        // modify the record of balance_data
-        // ram payer is this contract account
-        eosbt.modify( balance_data, get_self(), [&]( auto& data ) {
-            data.quantity = balance - quantity;
-        });
-    }
-}
-
-void pcs::add_eos_balance( name owner, asset quantity, name ram_payer ) {
-    // eosio_assert( is_account( owner ), "owner account does not exist");
-    // eosio_assert( is_account( ram_payer ), "ram_payer account does not exist");
-    eosio_assert( quantity.symbol == symbol( "EOS", 4 ), "offer fee must pay EOS token");
-
-    auto balance_data = eosbt.find( owner.value );
-
-    if( balance_data == eosbt.end() ) {
-        eosbt.emplace( ram_payer, [&]( auto& data ) {
-            data.username = owner;
-            data.quantity = quantity;
-        });
-    } else {
-        eosbt.modify( balance_data, get_self(), [&]( auto& data ) {
-            data.quantity += quantity;
-        });
-    }
-}
-
-void pcs::decrease_balance( name owner, symbol_code sym ) {
-	account_index account_table( get_self(), owner.value );
-    auto account_data = account_table.find( sym.raw() );
-    eosio_assert( account_data != account_table.end(), "no balance object found" );
-
-    asset balance = account_data->balance;
-
-    eosio_assert( balance.amount >= 1, "overdrawn balance" );
-
-    if ( balance.amount == 1 ) {
-        account_table.erase( account_data );
-    } else {
-        asset burnt_quantity = asset{ 1, symbol( sym, 0 ) };
-
-        account_table.modify( account_data, owner, [&]( auto& data ) {
-            data.balance -= burnt_quantity;
-        });
-    }
-}
-
-void pcs::add_balance( name owner, asset quantity, name ram_payer ) {
-    eosio_assert( quantity.symbol.precision() == 0, "symbol precision must be zero" );
-    eosio_assert( quantity.amount > 0, "invalid quantity" );
-
-	account_index account_table( get_self(), owner.value );
-    auto account_data = account_table.find( quantity.symbol.code().raw() );
-
-    if ( account_data == account_table.end() ) {
-        account_table.emplace( ram_payer, [&]( auto& data ) {
-            data.balance = quantity;
-        });
-    } else {
-        account_table.modify( account_data, get_self(), [&]( auto& data ) {
-            data.balance += quantity;
-        });
-    }
-}
-
-void pcs::decrease_supply( symbol_code sym ) {
-    currency_index currency_table( get_self(), sym.raw() );
-    auto current_currency = currency_table.find( sym.raw() );
-
-    currency_table.modify( current_currency, get_self(), [&]( auto& data ) {
-        data.supply -= asset{ 1, symbol( sym, 0 ) };
-    });
-}
-
-void pcs::add_supply( asset quantity ) {
-    eosio_assert( quantity.symbol.precision() == 0, "symbol precision must be zero" );
-    eosio_assert( quantity.amount > 0, "invalid quantity" );
-
-    symbol_code sym = quantity.symbol.code();
-
-    currency_index currency_table( get_self(), sym.raw() );
-    auto current_currency = currency_table.find( sym.raw() );
-
-    currency_table.modify( current_currency, get_self(), [&]( auto& data ) {
-        data.supply += quantity;
-    });
-}
-
-void pcs::sub_deposit( name user, asset quantity ) {
-    auto balance_data = eosbt.find( user.value );
-    eosio_assert( balance_data != eosbt.end(), "your balance data do not exist" );
-
-    asset deposit = balance_data->quantity;
-    eosio_assert( deposit.symbol == quantity.symbol, "different symbol or precision mismatch from your token deposited" );
-    eosio_assert( deposit.amount >= quantity.amount, "exceed the withdrawable amount" );
-
-    if ( deposit.amount == quantity.amount ) {
-        eosbt.erase( balance_data );
-    } else if ( deposit.amount > quantity.amount ) {
-        /// modify the record of balance_data
-        /// ram payer is this contract account
-        eosbt.modify( balance_data, get_self(), [&]( auto& data ) {
-            data.quantity = deposit - quantity;
-        });
-    }
-}
-
-uint64_t pcs::find_own_token( name owner, symbol_code sym ) {
-    auto token_table = tokens.get_index<name("bysymbol")>();
-
-    auto it = token_table.lower_bound( sym.raw() );
-
-    bool found = false;
-    uint64_t token_id = 0;
-    for (; it != token_table.end(); ++it ) {
-        if ( it->sym == sym && it->owner == owner ) {
-            token_id = it->id;
-            found = true;
-            break;
-        }
-    }
-
-    eosio_assert( found, "token is not found or is not owned by account" );
-
-    return token_id;
-}
-
 /// dispatcher
 extern "C" {
     void apply( uint64_t receiver, uint64_t code, uint64_t action ){
@@ -621,6 +574,7 @@ extern "C" {
                    (issue)(transferid)(transfer)(burn) /// token
                    (refleshkey)(lock) /// token
                    (servebid)(buy)(cancelbid) /// bid
+                   (withdraw) /// eos
                );
             }
         }

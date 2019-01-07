@@ -35,6 +35,7 @@ class [[eosio::contract]] cmnt : public eosio::contract {
         [[eosio::action]] void     servebid( name owner, uint64_t token_id, asset price, string memo );
         [[eosio::action]] void          buy( name buyer, uint64_t token_id, string memo );
         [[eosio::action]] void    cancelbid( name owner, uint64_t token_id );
+        [[eosio::action]] void     withdraw( name user, asset quantity, string memo );
         [[eosio::action]] void resisteruris( name user, symbol_code sym, vector<string> uris );
         [[eosio::action]] void      setpvid( symbol_code sym, uint64_t uri_id, uint64_t count );
         [[eosio::action]] void    setpvdata( symbol_code sym, string uri, uint64_t count );
@@ -204,13 +205,12 @@ class [[eosio::contract]] cmnt : public eosio::contract {
         uint64_t get_hex_digit( string memo );
         void transfer_eos( name to, asset value, string memo );
         void set_uri( name user, symbol_code sym, string uri );
-        void sub_eos_balance( name owner, asset quantity );
-        void add_eos_balance( name owner, asset quantity, name ram_payer );
-        void decrease_balance( name owner, symbol_code sym );
         void add_balance( name owner, asset quantity, name ram_payer );
-        void decrease_supply( symbol_code sym );
+        void decrease_balance( name owner, symbol_code sym );
         void add_supply( asset quantity );
-        void sub_deposit( name user, asset quantity );
+        void decrease_supply( symbol_code sym );
+        void add_deposit( name owner, asset quantity, name ram_payer );
+        void sub_deposit( name owner, asset quantity );
         uint64_t find_own_token( name owner, symbol_code sym );
         uint64_t find_pvdata_by_uri( symbol_code sym, string uri );
         uint64_t find_offer_by_uri( symbol_code sym, string uri );

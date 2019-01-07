@@ -241,6 +241,7 @@ void cmnt::refleshkey( name owner, uint64_t token_id, capi_public_key subkey ) {
         data.active = 1;
     });
 
+    /// RAM を所有者に負担させる
     decrease_balance( owner, sym );
 	add_balance( owner, asset{ 1, symbol( sym, 0 ) } , owner );
 }
@@ -301,11 +302,11 @@ void cmnt::transfer_eos( name to, asset value, string memo ) {
     eosio_assert( memo.size() <= 256, "memo has more than 256 bytes" );
 
     action(
-        permission_level{ get_self(), name("active") }, // このアカウントの権限を用いて
-        name("eosio.token"), // このコントラクト内にある
-        name("transfer"), // このメソッドに
-        std::make_tuple( get_self(), to, value, memo ) // 引数をタプルで渡して
-    ).send(); // アクションを実行する
+        permission_level{ get_self(), name("active") },
+        name("eosio.token"),
+        name("transfer"),
+        std::make_tuple( get_self(), to, value, memo )
+    ).send();
 }
 
 void cmnt::buy( name buyer, uint64_t token_id, string memo ) {
@@ -328,14 +329,12 @@ void cmnt::buy( name buyer, uint64_t token_id, string memo ) {
         data.active = 0; /// lock until reflesh key for safety
     });
 
+    /// トークンの残高を増やす
     add_balance( buyer, asset{ 1, symbol( bid_order->sym, 0 ) }, get_self() );
 
-    /// 支払い
-    sub_deposit( buyer, bid_order->price );
-
     /// 売り手に送金
-    string message = "executed as the inline action in cmnt::buy of " + get_self().to_string();
-    transfer_eos( bid_order->owner, bid_order->price, message );
+    sub_deposit( buyer, bid_order->price );
+    transfer_eos( bid_order->owner, bid_order->price, "executed as the inline action in cmnt::buy of " + get_self().to_string() );
 }
 
 void cmnt::cancelbid( name owner, uint64_t token_id ) {
@@ -357,54 +356,6 @@ void cmnt::cancelbid( name owner, uint64_t token_id ) {
     add_balance( owner, asset{ 1, symbol( bid_order->sym, 0 ) }, owner );
 }
 
-uint64_t cmnt::get_hex_digit( string memo ) {
-    eosio_assert( memo.size() <= 256, "too long memo" );
-    const char* str = memo.c_str();
-
-    uint8_t flag = 0;
-    uint8_t start_flag = 0;
-    uint8_t index = 0;
-    vector<char> c;
-    uint8_t i = 0;
-    for (; str[i]; ++i ) {
-        if ( start_flag == 1 ) {
-            if (
-                ( str[i] >= '0' && str[i] <= '9' ) ||
-                ( str[i] >= 'a' && str[i] <= 'f' ) ||
-                ( str[i] >= 'A' && str[i] <= 'F' )
-            ) {
-                if (index >= 16) {
-                    flag = 0;
-                } else {
-                    flag = 1;
-                    c.push_back( str[i] );
-                    index += 1;
-                }
-            } else {
-                if ( index > 0 ) {
-                    if ( flag == 0 ) {
-                        index = 0;
-                        c.clear();
-                    } else {
-                        c.push_back( '\0' );
-                        break;
-                    }
-                }
-                start_flag = 0;
-            }
-        }
-
-        if ( str[i] == '#' ) {
-            start_flag = 1;
-        }
-    }
-
-    eosio_assert( flag == 1, "token ID is not found" );
-
-    string digit( c.begin(), c.end() );
-    return static_cast<uint64_t>( std::stoull(digit, nullptr, 16) );
-}
-
 void cmnt::receive() {
     /// receive action data of eosio.token::transfer
     auto transfer_data = eosio::unpack_action_data< transfer_args >();
@@ -415,53 +366,30 @@ void cmnt::receive() {
 
     eosio_assert( from == get_self() && to != get_self(), "does not allow to transfer from this contract to another" );
 
-    /// Because "transfereos" action is called when this contract account
+    /// Because "receive" action is called when this contract account
     /// is the sender or receiver of "eosio.token::transfer",
     /// so `to == get_self()` is needed.
     /// This contract account do not have balance record,
     /// so `from != get_self()` is needed.
     if ( to == get_self() && from != get_self() ) {
-        eosio_assert( quantity.symbol == symbol( "EOS", 4 ), "receive only EOS token" );
-
-        auto balance_data = eosbt.find( from.value );
-
-        if( balance_data == eosbt.end() ) {
-            eosbt.emplace( get_self(), [&]( auto& data ) {
-                data.username = from;
-                data.quantity = quantity;
-            });
-        } else {
-            asset deposit = balance_data->quantity;
-            eosio_assert( deposit.amount + quantity.amount > deposit.amount, "since occurred overflow, revert the state" );
-
-            /// modify the record of balance_data
-            /// ram payer is this contract account
-            eosbt.modify( balance_data, get_self(), [&]( auto& data ) {
-                data.quantity = deposit + quantity;
-            });
-        }
+        cmnt::add_deposit( from, quantity, get_self() );
 
         // For example, "buy token#0 in pcstoycashio" match this pattern.
         uint64_t token_id = cmnt::get_hex_digit( message );
+
         if ( message == "buy token#" + std::to_string( token_id ) + " in " + get_self().to_string() ) {
-            // symbol_code sym = symbol_code( "PCS" ); // symbol_code( sm[1].str() );
-
             auto bid_order = bids.find( token_id );
-            eosio_assert( bid_order != bids.end(), "token does not exist" );
-            // eosio_assert( bid_order->sym == sym, "symbol code is not match" );
-
-            /// 残高が足りているか事前に確認する
-            // auto buyer_balance = eosbt.find( from.value );
-            // eosio_assert( buyer_balance != eosbt.end(), "your balance data do not exist" );
-            //
-            // asset buyer_deposit = buyer_balance->quantity;
-            // asset price = bid_order->price;
-            // eosio_assert( buyer_deposit.symbol == price.symbol, "different symbol or precision mismatch" );
-            // eosio_assert( buyer_deposit.amount >= price.amount, "token price exceed your balance" );
+            eosio_assert( bid_order != bids.end(), "order does not exist" );
 
             cmnt::buy( from, token_id, "buy token in cmnt::receive of " + get_self().to_string() );
         }
     }
+}
+
+void cmnt::withdraw( name user, asset quantity, string memo ) {
+    require_auth( user );
+    cmnt::sub_deposit( user, quantity );
+    cmnt::transfer_eos( user, quantity, memo );
 }
 
 void cmnt::set_uri( name user, symbol_code sym, string uri ) {
@@ -614,7 +542,7 @@ void cmnt::acceptoffer( name manager, symbol_code sym, uint64_t offer_id ) {
         data.active = 1;
     });
 
-    cmnt::sub_eos_balance( provider, price );
+    cmnt::sub_deposit( provider, price );
 
     name to = existing_currency->issuer;
     string message = "executed as the inline action in cmnt::acceptoffer of " + get_self().to_string();
@@ -631,7 +559,7 @@ void cmnt::removeoffer( name provider, symbol_code sym, uint64_t offer_id ) {
 
     offer_list.erase( offer_data );
 
-    cmnt::sub_eos_balance( provider, offer_data->price );
+    cmnt::sub_deposit( provider, offer_data->price );
 
     string message = "executed as the inline action in cmnt::acceptoffer of " + get_self().to_string();
     cmnt::transfer_eos( provider, offer_data->price, message );
@@ -671,43 +599,20 @@ void cmnt::dropcontent( name manager, symbol_code sym, uint64_t content_id ) {
     content_list.erase( content_data );
 }
 
-void cmnt::sub_eos_balance( name owner, asset quantity ) {
-    // eosio_assert( is_account( owner ), "owner account does not exist");
+void cmnt::add_balance( name owner, asset quantity, name ram_payer ) {
+    eosio_assert( quantity.symbol.precision() == 0, "symbol precision must be zero" );
+    eosio_assert( quantity.amount > 0, "invalid quantity" );
 
-    auto balance_data = eosbt.find( owner.value );
-    eosio_assert( balance_data != eosbt.end(), "your balance data do not exist" );
+	account_index account_table( get_self(), owner.value );
+    auto account_data = account_table.find( quantity.symbol.code().raw() );
 
-    asset balance = balance_data->quantity;
-
-    eosio_assert( quantity.symbol == symbol( "EOS", 4 ), "offer fee must pay EOS token");
-    eosio_assert( balance.amount >= quantity.amount, "exceed your balance");
-
-    if ( balance.amount == quantity.amount ) {
-        eosbt.erase( balance_data );
-    } else {
-        // modify the record of balance_data
-        // ram payer is this contract account
-        eosbt.modify( balance_data, get_self(), [&]( auto& data ) {
-            data.quantity = balance - quantity;
-        });
-    }
-}
-
-void cmnt::add_eos_balance( name owner, asset quantity, name ram_payer ) {
-    // eosio_assert( is_account( owner ), "owner account does not exist");
-    // eosio_assert( is_account( ram_payer ), "ram_payer account does not exist");
-    eosio_assert( quantity.symbol == symbol( "EOS", 4 ), "offer fee must pay EOS token");
-
-    auto balance_data = eosbt.find( owner.value );
-
-    if( balance_data == eosbt.end() ) {
-        eosbt.emplace( ram_payer, [&]( auto& data ) {
-            data.username = owner;
-            data.quantity = quantity;
+    if ( account_data == account_table.end() ) {
+        account_table.emplace( ram_payer, [&]( auto& data ) {
+            data.balance = quantity;
         });
     } else {
-        eosbt.modify( balance_data, get_self(), [&]( auto& data ) {
-            data.quantity += quantity;
+        account_table.modify( account_data, get_self(), [&]( auto& data ) {
+            data.balance += quantity;
         });
     }
 }
@@ -732,33 +637,6 @@ void cmnt::decrease_balance( name owner, symbol_code sym ) {
     }
 }
 
-void cmnt::add_balance( name owner, asset quantity, name ram_payer ) {
-    eosio_assert( quantity.symbol.precision() == 0, "symbol precision must be zero" );
-    eosio_assert( quantity.amount > 0, "invalid quantity" );
-
-	account_index account_table( get_self(), owner.value );
-    auto account_data = account_table.find( quantity.symbol.code().raw() );
-
-    if ( account_data == account_table.end() ) {
-        account_table.emplace( ram_payer, [&]( auto& data ) {
-            data.balance = quantity;
-        });
-    } else {
-        account_table.modify( account_data, get_self(), [&]( auto& data ) {
-            data.balance += quantity;
-        });
-    }
-}
-
-void cmnt::decrease_supply( symbol_code sym ) {
-    currency_index currency_table( get_self(), sym.raw() );
-    auto current_currency = currency_table.find( sym.raw() );
-
-    currency_table.modify( current_currency, get_self(), [&]( auto& data ) {
-        data.supply -= asset{ 1, symbol( sym, 0 ) };
-    });
-}
-
 void cmnt::add_supply( asset quantity ) {
     eosio_assert( quantity.symbol.precision() == 0, "symbol precision must be zero" );
     eosio_assert( quantity.amount > 0, "invalid quantity" );
@@ -773,21 +651,49 @@ void cmnt::add_supply( asset quantity ) {
     });
 }
 
-void cmnt::sub_deposit( name user, asset quantity ) {
-    auto balance_data = eosbt.find( user.value );
+void cmnt::decrease_supply( symbol_code sym ) {
+    currency_index currency_table( get_self(), sym.raw() );
+    auto current_currency = currency_table.find( sym.raw() );
+
+    currency_table.modify( current_currency, get_self(), [&]( auto& data ) {
+        data.supply -= asset{ 1, symbol( sym, 0 ) };
+    });
+}
+
+void cmnt::add_deposit( name owner, asset quantity, name ram_payer ) {
+    eosio_assert( is_account( owner ), "owner account does not exist" );
+    eosio_assert( is_account( ram_payer ), "ram_payer account does not exist" );
+    eosio_assert( quantity.symbol == symbol( "EOS", 4 ), "must EOS token" );
+
+    auto balance_data = eosbt.find( owner.value );
+
+    if( balance_data == eosbt.end() ) {
+        eosbt.emplace( ram_payer, [&]( auto& data ) {
+            data.username = owner;
+            data.quantity = quantity;
+        });
+    } else {
+        eosbt.modify( balance_data, get_self(), [&]( auto& data ) {
+            data.quantity += quantity;
+        });
+    }
+}
+
+void cmnt::sub_deposit( name owner, asset quantity ) {
+    eosio_assert( is_account( owner ), "owner account does not exist");
+    eosio_assert( quantity.symbol == symbol( "EOS", 4 ), "must EOS token" );
+
+    auto balance_data = eosbt.find( owner.value );
     eosio_assert( balance_data != eosbt.end(), "your balance data do not exist" );
 
     asset deposit = balance_data->quantity;
-    eosio_assert( deposit.symbol == quantity.symbol, "different symbol or precision mismatch from your token deposited" );
     eosio_assert( deposit.amount >= quantity.amount, "exceed the withdrawable amount" );
 
     if ( deposit.amount == quantity.amount ) {
         eosbt.erase( balance_data );
     } else if ( deposit.amount > quantity.amount ) {
-        /// modify the record of balance_data
-        /// ram payer is this contract account
         eosbt.modify( balance_data, get_self(), [&]( auto& data ) {
-            data.quantity = deposit - quantity;
+            data.quantity -= quantity;
         });
     }
 }
@@ -843,6 +749,54 @@ uint64_t cmnt::find_pvdata_by_uri( symbol_code sym, string uri ) {
     return uri_id;
 }
 
+uint64_t cmnt::get_hex_digit( string memo ) {
+    eosio_assert( memo.size() <= 256, "too long memo" );
+    const char* str = memo.c_str();
+
+    uint8_t flag = 0;
+    uint8_t start_flag = 0;
+    uint8_t index = 0;
+    vector<char> c;
+    uint8_t i = 0;
+    for (; str[i]; ++i ) {
+        if ( start_flag == 1 ) {
+            if (
+                ( str[i] >= '0' && str[i] <= '9' ) ||
+                ( str[i] >= 'a' && str[i] <= 'f' ) ||
+                ( str[i] >= 'A' && str[i] <= 'F' )
+            ) {
+                if (index >= 16) {
+                    flag = 0;
+                } else {
+                    flag = 1;
+                    c.push_back( str[i] );
+                    index += 1;
+                }
+            } else {
+                if ( index > 0 ) {
+                    if ( flag == 0 ) {
+                        index = 0;
+                        c.clear();
+                    } else {
+                        c.push_back( '\0' );
+                        break;
+                    }
+                }
+                start_flag = 0;
+            }
+        }
+
+        if ( str[i] == '#' ) {
+            start_flag = 1;
+        }
+    }
+
+    eosio_assert( flag == 1, "token ID is not found" );
+
+    string digit( c.begin(), c.end() );
+    return static_cast<uint64_t>( std::stoull(digit, nullptr, 16) );
+}
+
 /// dispatcher
 extern "C" {
     void apply( uint64_t receiver, uint64_t code, uint64_t action ){
@@ -859,6 +813,7 @@ extern "C" {
                    (issue)(transferid)(transfer)(burn) /// token
                    (refleshkey)(lock) /// token
                    (servebid)(buy)(cancelbid) /// bid
+                   (withdraw) /// eos
                    (resisteruris)(setpvid)(setpvdata)(removepvid)(removepvdata) /// pvcount
                    (setoffer)(acceptoffer)(removeoffer)(stopcontent) /// offer, content
                );

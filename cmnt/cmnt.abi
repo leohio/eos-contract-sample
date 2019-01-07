@@ -1,7 +1,25 @@
 {
-    "____comment": "This file was generated with eosio-abigen. DO NOT EDIT Mon Jan  7 22:49:37 2019",
+    "____comment": "This file was generated with eosio-abigen. DO NOT EDIT Mon Jan  7 22:51:25 2019",
     "version": "eosio::abi/1.0",
     "structs": [
+        {
+            "name": "acceptoffer",
+            "base": "",
+            "fields": [
+                {
+                    "name": "manager",
+                    "type": "name"
+                },
+                {
+                    "name": "sym",
+                    "type": "symbol_code"
+                },
+                {
+                    "name": "offer_id",
+                    "type": "uint64"
+                }
+            ]
+        },
         {
             "name": "account",
             "base": "",
@@ -73,6 +91,36 @@
             ]
         },
         {
+            "name": "content",
+            "base": "",
+            "fields": [
+                {
+                    "name": "id",
+                    "type": "uint64"
+                },
+                {
+                    "name": "price",
+                    "type": "asset"
+                },
+                {
+                    "name": "provider",
+                    "type": "name"
+                },
+                {
+                    "name": "uri",
+                    "type": "string"
+                },
+                {
+                    "name": "timestamp",
+                    "type": "uint64"
+                },
+                {
+                    "name": "active",
+                    "type": "uint8"
+                }
+            ]
+        },
+        {
             "name": "create",
             "base": "",
             "fields": [
@@ -93,6 +141,24 @@
                 {
                     "name": "sym",
                     "type": "symbol_code"
+                }
+            ]
+        },
+        {
+            "name": "dropcontent",
+            "base": "",
+            "fields": [
+                {
+                    "name": "manager",
+                    "type": "name"
+                },
+                {
+                    "name": "sym",
+                    "type": "symbol_code"
+                },
+                {
+                    "name": "content_id",
+                    "type": "uint64"
                 }
             ]
         },
@@ -159,6 +225,28 @@
             ]
         },
         {
+            "name": "offer",
+            "base": "",
+            "fields": [
+                {
+                    "name": "id",
+                    "type": "uint64"
+                },
+                {
+                    "name": "price",
+                    "type": "asset"
+                },
+                {
+                    "name": "provider",
+                    "type": "name"
+                },
+                {
+                    "name": "uri",
+                    "type": "string"
+                }
+            ]
+        },
+        {
             "name": "order",
             "base": "",
             "fields": [
@@ -177,6 +265,24 @@
                 {
                     "name": "sym",
                     "type": "symbol_code"
+                }
+            ]
+        },
+        {
+            "name": "pvcount",
+            "base": "",
+            "fields": [
+                {
+                    "name": "id",
+                    "type": "uint64"
+                },
+                {
+                    "name": "uri",
+                    "type": "string"
+                },
+                {
+                    "name": "count",
+                    "type": "uint64"
                 }
             ]
         },
@@ -204,6 +310,70 @@
             ]
         },
         {
+            "name": "removeoffer",
+            "base": "",
+            "fields": [
+                {
+                    "name": "provider",
+                    "type": "name"
+                },
+                {
+                    "name": "sym",
+                    "type": "symbol_code"
+                },
+                {
+                    "name": "offer_id",
+                    "type": "uint64"
+                }
+            ]
+        },
+        {
+            "name": "removepvdata",
+            "base": "",
+            "fields": [
+                {
+                    "name": "sym",
+                    "type": "symbol_code"
+                },
+                {
+                    "name": "uri",
+                    "type": "string"
+                }
+            ]
+        },
+        {
+            "name": "removepvid",
+            "base": "",
+            "fields": [
+                {
+                    "name": "sym",
+                    "type": "symbol_code"
+                },
+                {
+                    "name": "uri_id",
+                    "type": "uint64"
+                }
+            ]
+        },
+        {
+            "name": "resisteruris",
+            "base": "",
+            "fields": [
+                {
+                    "name": "user",
+                    "type": "name"
+                },
+                {
+                    "name": "sym",
+                    "type": "symbol_code"
+                },
+                {
+                    "name": "uris",
+                    "type": "string[]"
+                }
+            ]
+        },
+        {
             "name": "servebid",
             "base": "",
             "fields": [
@@ -226,6 +396,64 @@
             ]
         },
         {
+            "name": "setoffer",
+            "base": "",
+            "fields": [
+                {
+                    "name": "provider",
+                    "type": "name"
+                },
+                {
+                    "name": "sym",
+                    "type": "symbol_code"
+                },
+                {
+                    "name": "uri",
+                    "type": "string"
+                },
+                {
+                    "name": "price",
+                    "type": "asset"
+                }
+            ]
+        },
+        {
+            "name": "setpvdata",
+            "base": "",
+            "fields": [
+                {
+                    "name": "sym",
+                    "type": "symbol_code"
+                },
+                {
+                    "name": "uri",
+                    "type": "string"
+                },
+                {
+                    "name": "count",
+                    "type": "uint64"
+                }
+            ]
+        },
+        {
+            "name": "setpvid",
+            "base": "",
+            "fields": [
+                {
+                    "name": "sym",
+                    "type": "symbol_code"
+                },
+                {
+                    "name": "uri_id",
+                    "type": "uint64"
+                },
+                {
+                    "name": "count",
+                    "type": "uint64"
+                }
+            ]
+        },
+        {
             "name": "stats",
             "base": "",
             "fields": [
@@ -236,6 +464,24 @@
                 {
                     "name": "issuer",
                     "type": "name"
+                }
+            ]
+        },
+        {
+            "name": "stopcontent",
+            "base": "",
+            "fields": [
+                {
+                    "name": "manager",
+                    "type": "name"
+                },
+                {
+                    "name": "sym",
+                    "type": "symbol_code"
+                },
+                {
+                    "name": "content_id",
+                    "type": "uint64"
                 }
             ]
         },
@@ -331,6 +577,11 @@
     "types": [],
     "actions": [
         {
+            "name": "acceptoffer",
+            "type": "acceptoffer",
+            "ricardian_contract": ""
+        },
+        {
             "name": "burn",
             "type": "burn",
             "ricardian_contract": ""
@@ -353,6 +604,11 @@
         {
             "name": "destroy",
             "type": "destroy",
+            "ricardian_contract": ""
+        },
+        {
+            "name": "dropcontent",
+            "type": "dropcontent",
             "ricardian_contract": ""
         },
         {
@@ -381,8 +637,48 @@
             "ricardian_contract": ""
         },
         {
+            "name": "removeoffer",
+            "type": "removeoffer",
+            "ricardian_contract": ""
+        },
+        {
+            "name": "removepvdata",
+            "type": "removepvdata",
+            "ricardian_contract": ""
+        },
+        {
+            "name": "removepvid",
+            "type": "removepvid",
+            "ricardian_contract": ""
+        },
+        {
+            "name": "resisteruris",
+            "type": "resisteruris",
+            "ricardian_contract": ""
+        },
+        {
             "name": "servebid",
             "type": "servebid",
+            "ricardian_contract": ""
+        },
+        {
+            "name": "setoffer",
+            "type": "setoffer",
+            "ricardian_contract": ""
+        },
+        {
+            "name": "setpvdata",
+            "type": "setpvdata",
+            "ricardian_contract": ""
+        },
+        {
+            "name": "setpvid",
+            "type": "setpvid",
+            "ricardian_contract": ""
+        },
+        {
+            "name": "stopcontent",
+            "type": "stopcontent",
             "ricardian_contract": ""
         },
         {
@@ -424,8 +720,29 @@
             "key_types": []
         },
         {
+            "name": "content",
+            "type": "content",
+            "index_type": "i64",
+            "key_names": [],
+            "key_types": []
+        },
+        {
             "name": "currency",
             "type": "stats",
+            "index_type": "i64",
+            "key_names": [],
+            "key_types": []
+        },
+        {
+            "name": "offer",
+            "type": "offer",
+            "index_type": "i64",
+            "key_names": [],
+            "key_types": []
+        },
+        {
+            "name": "pvcount",
+            "type": "pvcount",
             "index_type": "i64",
             "key_names": [],
             "key_types": []
