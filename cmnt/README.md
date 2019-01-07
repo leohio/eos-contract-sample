@@ -70,7 +70,7 @@ cleos get table pcstoycashio pcstoycashio bid
 cleos get table eosio.token leohioleohio accounts
 ```
 
-### Offer
+### Offer & Contents
 
 ```
 cleos get table pcstoycashio pcstoycashio balance
@@ -79,7 +79,7 @@ cleos get table pcstoycashio pcstoycashio balance
 cleos push action eosio.token transfer '["mokemokecore", "pcstoycashio", "0.1000 EOS", "transfer EOS for offer"]' -p mokemokecore@active
 
 cleos get table pcstoycashio PCS offer
-cleos get table pcstoycashio PCS content
+cleos get table pcstoycashio PCS contents
 
 # オファーの提案を出す
 cleos push action pcstoycashio setoffer '["mokemokecore", "PCS", "https://www.coinershigh.com", "0.1000 EOS"]' -p mokemokecore@active
@@ -90,36 +90,20 @@ cleos get table pcstoycashio PCS offer
 cleos push action pcstoycashio acceptoffer '["leohioleohio", "PCS", 0]' -p leohioleohio@active
 
 cleos get table pcstoycashio PCS offer
-cleos get table pcstoycashio PCS content
-
-# コンテンツの配信を停止する
-cleos push action pcstoycashio stopcontent '["leohioleohio", "PCS", 0]' -p leohioleohio@active
-
-cleos get table pcstoycashio PCS content
-
-# コンテンツを削除する
-cleos push action pcstoycashio dropcontent '["leohioleohio", "PCS", 0]' -p leohioleohio@active
-
-cleos get table pcstoycashio PCS content
-```
-
-### PV Count Data
-
-```
-cleos get table pcstoycashio PCS pvcount
-
-# URI を登録する
-cleos push action pcstoycashio resisteruris '["leohioleohio", "PCS", ["https://www.geomerlin.com"]]' -p leohioleohio@active
-
-cleos get table pcstoycashio PCS pvcount
+cleos get table pcstoycashio PCS contents
 
 # PV 数を記録する
-cleos push action pcstoycashio setpvdata '["PCS", "https://www.geomerlin.com", 50]' -p pcstoycashio@active
+cleos push action pcstoycashio addpvcount '["PCS", 0, 1]' -p pcstoycashio@active
 
-cleos get table pcstoycashio PCS pvcount
+cleos get table pcstoycashio PCS contents
 
-# URI の登録を解除する （ PV 数は復活しない）
-cleos push action pcstoycashio removepvdata '["PCS", "https://www.geomerlin.com"]' -p pcstoycashio@active
+# コンテンツの配信を停止する
+cleos push action pcstoycashio stopcontents '["leohioleohio", "PCS", 0]' -p leohioleohio@active
 
-cleos get table pcstoycashio PCS pvcount
+cleos get table pcstoycashio PCS contents
+
+# コンテンツを削除する
+cleos push action pcstoycashio dropcontents '["leohioleohio", "PCS", 0]' -p leohioleohio@active
+
+cleos get table pcstoycashio PCS contents
 ```

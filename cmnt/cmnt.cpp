@@ -392,107 +392,30 @@ void cmnt::withdraw( name user, asset quantity, string memo ) {
     transfer_eos( user, quantity, memo );
 }
 
-void cmnt::set_uri( name user, symbol_code sym, string uri ) {
-    /// Check uri size
-    eosio_assert( uri.size() <= 256, "uri has more than 256 bytes" );
-
-    pv_count_index pv_count_table( get_self(), sym.raw() );
-
-    pv_count_table.emplace( user, [&]( auto& data ) {
-        data.id = pv_count_table.available_primary_key();
-        data.uri = uri;
-        data.count = 0;
-    });
-}
-
-void cmnt::resisteruris( name user, symbol_code sym, vector<string> uris ) {
-    require_auth( user );
-
-    /// Ensure valid symbol
-    eosio_assert( sym.is_valid(), "invalid symbol name" );
-
-    /// Ensure currency has been created
-    currency_index currency_table( get_self(), sym.raw() );
-    auto existing_currency = currency_table.find( sym.raw() );
-    eosio_assert( existing_currency != currency_table.end(), "token with symbol does not exist. create token before issue" );
-
-    for ( auto const& uri: uris ) {
-        cmnt::set_uri( user, sym, uri );
-    }
-}
-
-void cmnt::setpvid( symbol_code sym, uint64_t uri_id, uint64_t count ) {
-    /// コントラクトアカウントのみが呼び出せる
-    require_auth( get_self() ); // setpvid action must execute by the contract account
-
-    /// Ensure valid symbol
-    eosio_assert( sym.is_valid(), "invalid symbol name" );
-
-    /// すでに指定した uri に関する pv のデータがあることを確認
-    uint64_t symbol_name = sym.raw();
-    pv_count_index pv_count_table( get_self(), symbol_name );
-    auto pv_data = pv_count_table.find( uri_id );
-    eosio_assert( pv_data != pv_count_table.end() ,"this uri is not exist in the pv count table" );
-
-    /// overflow 対策
-    eosio_assert( pv_data->count + count > pv_data->count, "pv count overflow! so revert state." );
-
-    pv_count_table.modify( pv_data, get_self(), [&]( auto& data ) {
-        data.count = data.count + count;
-    });
-}
-
-void cmnt::setpvdata( symbol_code sym, string uri, uint64_t count ) {
-    uint64_t uri_id = cmnt::find_pvdata_by_uri( sym, uri );
-    cmnt::setpvid( sym, uri_id, count );
-}
-
-void cmnt::removepvid( symbol_code sym, uint64_t uri_id ) {
-    /// コントラクトアカウントのみが呼び出せる
-    require_auth( get_self() ); // removepvid action must execute by the contract account
-
-    /// Ensure valid symbol
-    eosio_assert( sym.is_valid(), "invalid symbol name" );
-
-    /// すでに指定した uri に関する pv のデータがあることを確認
-    uint64_t symbol_name = sym.raw();
-    pv_count_index pv_count_table( get_self(), symbol_name );
-    auto pv_data = pv_count_table.find( uri_id );
-
-    eosio_assert( pv_data != pv_count_table.end() ,"this uri is not exist in the pv count table" );
-
-    pv_count_table.erase( pv_data );
-}
-
-void cmnt::removepvdata( symbol_code sym, string uri ) {
-    uint64_t uri_id = cmnt::find_pvdata_by_uri( sym, uri );
-    cmnt::removepvid( sym, uri_id );
-}
-
 void cmnt::setoffer( name provider, symbol_code sym, string uri, asset price ) {
     require_auth( provider );
 
-    /// get timestamp
-    uint64_t now = current_time();
-
     /// Ensure valid symbol
     eosio_assert( sym.is_valid(), "invalid symbol name" );
 
     eosio_assert( uri.size() <= 256, "uri has more than 256 bytes" );
 
-    /// オファー料金が前もってコントラクトに振り込まれているか確認
-    auto balance_data = eosbt.find( provider.value );
-    eosio_assert( balance_data != eosbt.end(), "your balance data do not exist" );
-
-    asset deposit = balance_data->quantity;
     eosio_assert( price.amount >= 0, "offer fee must be not negative value" );
     eosio_assert( price.symbol == symbol( "EOS", 4 ), "symbol of price must be EOS" );
-    eosio_assert( deposit.amount >= price.amount, "offer fee exceed your deposit" );
+
+    /// オファー料金が前もってコントラクトに振り込まれているか確認
+    if ( price.amount != 0 ) {
+        auto balance_data = eosbt.find( provider.value );
+        eosio_assert( balance_data != eosbt.end(), "your balance data do not exist" );
+
+        asset deposit = balance_data->quantity;
+        eosio_assert( deposit.amount >= price.amount, "offer fee exceed your deposit" );
+    }
 
     /// Ensure currency has been created
     currency_index currency_table( get_self(), sym.raw() );
     auto existing_currency = currency_table.find( sym.raw() );
-    eosio_assert( existing_currency != currency_table.end(), "token with symbol does not exist. create token before issue" );
+    eosio_assert( existing_currency != currency_table.end(), "token with symbol does not exist." );
 
     offer_index offer_list( get_self(), sym.raw() );
     offer_list.emplace( provider, [&]( auto& data ) {
@@ -523,12 +446,12 @@ void cmnt::acceptoffer( name manager, symbol_code sym, uint64_t offer_id ) {
     eosio_assert( offer_data != offer_list.end(), "offer data do not exist" );
 
     asset price = offer_data->price;
-    name provider = offer_data->provider;
-    string uri = offer_data->uri;
+    eosio_assert( price.amount >= 0, "offer fee must be not negative value" );
 
-    /// オファー料金が前もってコントラクトに振り込まれているか確認
-    auto balance_data = eosbt.find( provider.value );
-    eosio_assert( balance_data != eosbt.end(), "your balance data do not exist" );
+    name provider = offer_data->provider;
+
+    string uri = offer_data->uri;
+    eosio_assert( uri.size() <= 256, "uri has more than 256 bytes" );
 
     /// 受け入れられた offer は content に昇格する
     offer_list.erase( offer_data );
@@ -546,12 +469,19 @@ void cmnt::acceptoffer( name manager, symbol_code sym, uint64_t offer_id ) {
         data.price = price;
         data.provider = provider;
         data.uri = uri;
-        data.timestamp = now;
+        data.count = 0;
+        data.accepted = now;
         data.active = 1;
     });
 
-    sub_deposit( provider, price );
-    transfer_eos( manager, price, "executed as the inline action in cmnt::acceptoffer of " + get_self().to_string() );
+    /// オファー料金が前もってコントラクトに振り込まれているか確認
+    if ( price.amount != 0 ) {
+        auto balance_data = eosbt.find( provider.value );
+        eosio_assert( balance_data != eosbt.end(), "your balance data do not exist" );
+
+        sub_deposit( provider, price );
+        transfer_eos( manager, price, "executed as the inline action in cmnt::acceptoffer of " + get_self().to_string() );
+    }
 }
 
 void cmnt::removeoffer( name provider, symbol_code sym, uint64_t offer_id ) {
@@ -568,7 +498,28 @@ void cmnt::removeoffer( name provider, symbol_code sym, uint64_t offer_id ) {
     transfer_eos( provider, offer_data->price, "executed as the inline action in cmnt::acceptoffer of " + get_self().to_string() );
 }
 
-void cmnt::stopcontent( name manager, symbol_code sym, uint64_t content_id ) {
+void cmnt::addpvcount( symbol_code sym, uint64_t content_id, uint64_t pv_count ) {
+    /// コントラクトアカウントのみが呼び出せる
+    require_auth( get_self() );
+
+    /// Ensure valid symbol
+    eosio_assert( sym.is_valid(), "invalid symbol name" );
+
+    /// すでに指定した uri に関する pv のデータがあることを確認
+    content_index content_table( get_self(), sym.raw() );
+    auto content_data = content_table.find( content_id );
+    eosio_assert( content_data != content_table.end() ,"this contents is not exist in the content table" );
+    eosio_assert( content_data->active != 0, "this contents is not active" );
+
+    /// overflow 対策
+    eosio_assert( content_data->count + pv_count > content_data->count, "pv count overflow, so revert state." );
+
+    content_table.modify( content_data, get_self(), [&]( auto& data ) {
+        data.count += pv_count;
+    });
+}
+
+void cmnt::stopcontents( name manager, symbol_code sym, uint64_t content_id ) {
     require_auth( manager );
 
     /// Ensure valid symbol
@@ -586,7 +537,7 @@ void cmnt::stopcontent( name manager, symbol_code sym, uint64_t content_id ) {
     });
 }
 
-void cmnt::dropcontent( name manager, symbol_code sym, uint64_t content_id ) {
+void cmnt::dropcontents( name manager, symbol_code sym, uint64_t content_id ) {
     require_auth( manager );
 
     /// Ensure valid symbol
@@ -731,15 +682,14 @@ uint64_t cmnt::find_pvdata_by_uri( symbol_code sym, string uri ) {
     auto existing_currency = currency_table.find( symbol_name );
     eosio_assert( existing_currency != currency_table.end(), "token with symbol does not exist. create token before issue" );
 
-    pv_count_index pv_count_table( get_self(), symbol_name );
-    // auto pv_table = pv_count_table.get_index<name("byuriid")>();
+    content_index content_table( get_self(), symbol_name );
 
-    auto it = pv_count_table.begin();
+    auto it = content_table.begin();
 
     /// uri でテーブルを検索
     bool found = false;
     uint64_t uri_id = 0;
-    for (; it != pv_count_table.end(); ++it ) {
+    for (; it != content_table.end(); ++it ) {
         if( it->uri == uri ) {
             uri_id = it->id;
             found = true;
@@ -816,9 +766,9 @@ extern "C" {
                    (issue)(transferid)(transfer)(burn) /// token
                    (refleshkey)(lock) /// token
                    (servebid)(buy)(cancelbid) /// bid
-                   (withdraw) /// eos
-                   (setoffer)(acceptoffer)(removeoffer)(stopcontent) /// offer, content
-                   (resisteruris)(setpvid)(setpvdata)(removepvid)(removepvdata) /// pvcount
+                   (withdraw) /// balance
+                   (setoffer)(acceptoffer)(removeoffer) /// offer
+                   (addpvcount)(stopcontents)(dropcontents) /// contents
                );
             }
         }

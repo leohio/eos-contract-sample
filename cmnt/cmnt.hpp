@@ -36,16 +36,17 @@ class [[eosio::contract]] cmnt : public eosio::contract {
         [[eosio::action]] void          buy( name buyer, uint64_t token_id, string memo );
         [[eosio::action]] void    cancelbid( name owner, uint64_t token_id );
         [[eosio::action]] void     withdraw( name user, asset quantity, string memo );
-        [[eosio::action]] void resisteruris( name user, symbol_code sym, vector<string> uris );
-        [[eosio::action]] void      setpvid( symbol_code sym, uint64_t uri_id, uint64_t count );
-        [[eosio::action]] void    setpvdata( symbol_code sym, string uri, uint64_t count );
-        [[eosio::action]] void   removepvid( symbol_code sym, uint64_t uri_id );
-        [[eosio::action]] void removepvdata( symbol_code sym, string uri );
+        // [[eosio::action]] void resisteruris( name user, symbol_code sym, vector<string> uris );
+        // [[eosio::action]] void      setpvid( symbol_code sym, uint64_t uri_id, uint64_t count );
+        // [[eosio::action]] void    setpvdata( symbol_code sym, string uri, uint64_t count );
+        // [[eosio::action]] void   removepvid( symbol_code sym, uint64_t uri_id );
+        // [[eosio::action]] void removepvdata( symbol_code sym, string uri );
         [[eosio::action]] void     setoffer( name provider, symbol_code sym, string uri, asset price );
         [[eosio::action]] void  acceptoffer( name manager, symbol_code sym, uint64_t offer_id );
         [[eosio::action]] void  removeoffer( name provider, symbol_code sym, uint64_t offer_id );
-        [[eosio::action]] void  stopcontent( name manager, symbol_code sym, uint64_t content_id );
-        [[eosio::action]] void  dropcontent( name manager, symbol_code sym, uint64_t content_id );
+        [[eosio::action]] void   addpvcount( symbol_code sym, uint64_t content_id, uint64_t pv_count );
+        [[eosio::action]] void stopcontents( name manager, symbol_code sym, uint64_t content_id );
+        [[eosio::action]] void dropcontents( name manager, symbol_code sym, uint64_t content_id );
         [[eosio::action]] void      receive();
 
         /**
@@ -127,26 +128,30 @@ class [[eosio::contract]] cmnt : public eosio::contract {
             asset price;
             name provider;
             string uri;
-            uint64_t timestamp;
+            uint64_t count;
+            uint64_t accepted; // acceptoffer 時の timestamp
             uint8_t active;
 
             uint64_t primary_key() const { return id; }
             asset get_price() const { return price; }
             uint64_t get_provider() const { return provider.value; }
             string get_uri() const { return uri; }
-            uint64_t get_timestamp() const { return timestamp; }
+            uint64_t get_count() const { return count; }
+            uint64_t get_accepted() const { return accepted; }
             uint8_t get_active() const { return active; }
         };
 
-        struct [[eosio::table]] pvcount {
-            uint64_t id;
-            string uri;
-            uint64_t count;
-
-            uint64_t primary_key() const { return id; }
-            string get_uri() const { return uri; }
-            uint64_t get_count() const { return count; }
-        };
+        // struct [[eosio::table]] pvcount {
+        //     uint64_t timestamp;
+        //     symbol_code sym;
+        //     uint64_t content_id;
+        //     uint64_t count;
+        //
+        //     uint64_t primary_key() const { return timestamp; }
+        //     uint64_t get_symbol() const { return sym.raw(); }
+        //     uint64_t get_content_id() const { return content_id; }
+        //     uint64_t get_count() const { return count; }
+        // };
 
         struct [[eosio::table]] balance {
             name username;
@@ -182,14 +187,10 @@ class [[eosio::contract]] cmnt : public eosio::contract {
             indexed_by< name("byowner"), const_mem_fun<order, uint64_t, &order::get_owner> >,
             indexed_by< name("bysymbol"), const_mem_fun<order, uint64_t, &order::get_symbol> > >;
 
-        using pv_count_index = eosio::multi_index< name("pvcount"), pvcount,
-            indexed_by< name("byuriid"), const_mem_fun<pvcount, uint64_t, &pvcount::primary_key> >,
-            indexed_by< name("bycount"), const_mem_fun<pvcount, uint64_t, &pvcount::get_count> > >;
-
         using offer_index = eosio::multi_index< name("offer"), offer >;
 
-        using content_index = eosio::multi_index< name("content"), content,
-            indexed_by< name("bytime"), const_mem_fun<content, uint64_t, &content::get_timestamp> > >;
+        using content_index = eosio::multi_index< name("contents"), content,
+            indexed_by< name("bytime"), const_mem_fun<content, uint64_t, &content::get_accepted> > >;
 
     private:
 	    token_index tokens;
