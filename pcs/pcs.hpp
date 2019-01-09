@@ -15,9 +15,9 @@ class [[eosio::contract]] pcs : public eosio::contract {
 
         pcs( name receiver, name code, datastream<const char*> ds ):
     	    contract::contract( receiver, code, ds ),
-            tokens( receiver, receiver.value ),
-            eosbt( receiver, receiver.value ),
-            bids( receiver, receiver.value ) {}
+            token_table( receiver, receiver.value ),
+            deposit_table( receiver, receiver.value ),
+            sell_order_table( receiver, receiver.value ) {}
 
         /**
          * Public Function
@@ -33,7 +33,7 @@ class [[eosio::contract]] pcs : public eosio::contract {
         [[eosio::action]] void   refleshkey( name owner, uint64_t token_id, capi_public_key subkey );
         [[eosio::action]] void         lock( name claimer, uint64_t token_id, string data, capi_signature sig );
         [[eosio::action]] void     servebid( name owner, uint64_t token_id, asset price, string memo );
-        [[eosio::action]] void          buy( name buyer, uint64_t token_id, string memo );
+        [[eosio::action]] void          buy( name user, uint64_t token_id, string memo );
         [[eosio::action]] void    cancelbid( name owner, uint64_t token_id );
         [[eosio::action]] void     withdraw( name user, asset quantity, string memo );
         [[eosio::action]] void      receive();
@@ -47,8 +47,16 @@ class [[eosio::contract]] pcs : public eosio::contract {
             uint64_t primary_key() const { return balance.symbol.code().raw(); }
         };
 
+        struct [[eosio::table]] deposit {
+            name owner;
+            asset quantity;
+
+            uint64_t primary_key() const { return owner.value; }
+            uint64_t get_quantity() const { return quantity.amount; }
+        };
+
         // statistics of currency
-        struct [[eosio::table]] stats {
+        struct [[eosio::table]] currency {
             asset supply;
             name issuer;
             uint64_t primary_key() const { return supply.symbol.code().raw(); }
@@ -100,14 +108,6 @@ class [[eosio::contract]] pcs : public eosio::contract {
             uint64_t get_symbol() const { return sym.raw(); }
         };
 
-        struct [[eosio::table]] balance {
-            name username;
-            asset quantity;
-
-            uint64_t primary_key() const { return username.value; }
-            uint64_t get_quantity() const { return quantity.amount; }
-        };
-
         struct transfer_args {
             name from;
             name to;
@@ -119,25 +119,25 @@ class [[eosio::contract]] pcs : public eosio::contract {
          * Multi Index
         **/
 
-    	using account_index = eosio::multi_index< name("accounts"), account >;
+    	using account_index = eosio::multi_index< name("account"), account >;
 
-        using balance_index = eosio::multi_index< name("balance"), balance >;
+        using deposit_index = eosio::multi_index< name("deposit"), deposit >;
 
-    	using currency_index = eosio::multi_index< name("currency"), stats,
-    	    indexed_by< name("byissuer"), const_mem_fun< stats, uint64_t, &stats::get_issuer> > >;
+    	using currency_index = eosio::multi_index< name("currency"), currency,
+    	    indexed_by< name("byissuer"), const_mem_fun< currency, uint64_t, &currency::get_issuer> > >;
 
     	using token_index = eosio::multi_index< name("token"), token,
     	    indexed_by< name("byowner"), const_mem_fun<token, uint64_t, &token::primary_key> >,
             indexed_by< name("bysymbol"), const_mem_fun<token, uint64_t, &token::get_symbol> > >;
 
-        using bid_index = eosio::multi_index< name("bid"), order,
+        using sell_order_index = eosio::multi_index< name("sellorder"), order,
             indexed_by< name("byowner"), const_mem_fun<order, uint64_t, &order::get_owner> >,
             indexed_by< name("bysymbol"), const_mem_fun<order, uint64_t, &order::get_symbol> > >;
 
     private:
-	    token_index tokens;
-        balance_index eosbt; // table of eos balance
-        bid_index bids;
+	    token_index token_table;
+        deposit_index deposit_table;
+        sell_order_index sell_order_table;
 
         /**
          * Private Function

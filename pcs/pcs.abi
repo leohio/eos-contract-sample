@@ -1,5 +1,5 @@
 {
-    "____comment": "This file was generated with eosio-abigen. DO NOT EDIT Mon Jan  7 23:52:46 2019",
+    "____comment": "This file was generated with eosio-abigen. DO NOT EDIT Thu Jan 10 03:29:44 2019",
     "version": "eosio::abi/1.0",
     "structs": [
         {
@@ -8,20 +8,6 @@
             "fields": [
                 {
                     "name": "balance",
-                    "type": "asset"
-                }
-            ]
-        },
-        {
-            "name": "balance",
-            "base": "",
-            "fields": [
-                {
-                    "name": "username",
-                    "type": "name"
-                },
-                {
-                    "name": "quantity",
                     "type": "asset"
                 }
             ]
@@ -45,7 +31,7 @@
             "base": "",
             "fields": [
                 {
-                    "name": "buyer",
+                    "name": "user",
                     "type": "name"
                 },
                 {
@@ -83,6 +69,34 @@
                 {
                     "name": "sym",
                     "type": "symbol_code"
+                }
+            ]
+        },
+        {
+            "name": "currency",
+            "base": "",
+            "fields": [
+                {
+                    "name": "supply",
+                    "type": "asset"
+                },
+                {
+                    "name": "issuer",
+                    "type": "name"
+                }
+            ]
+        },
+        {
+            "name": "deposit",
+            "base": "",
+            "fields": [
+                {
+                    "name": "owner",
+                    "type": "name"
+                },
+                {
+                    "name": "quantity",
+                    "type": "asset"
                 }
             ]
         },
@@ -222,20 +236,6 @@
                 {
                     "name": "memo",
                     "type": "string"
-                }
-            ]
-        },
-        {
-            "name": "stats",
-            "base": "",
-            "fields": [
-                {
-                    "name": "supply",
-                    "type": "asset"
-                },
-                {
-                    "name": "issuer",
-                    "type": "name"
                 }
             ]
         },
@@ -403,29 +403,29 @@
     ],
     "tables": [
         {
-            "name": "accounts",
+            "name": "account",
             "type": "account",
             "index_type": "i64",
             "key_names": [],
             "key_types": []
         },
         {
-            "name": "balance",
-            "type": "balance",
-            "index_type": "i64",
-            "key_names": [],
-            "key_types": []
-        },
-        {
-            "name": "bid",
-            "type": "order",
-            "index_type": "i64",
-            "key_names": [],
-            "key_types": []
-        },
-        {
             "name": "currency",
-            "type": "stats",
+            "type": "currency",
+            "index_type": "i64",
+            "key_names": [],
+            "key_types": []
+        },
+        {
+            "name": "deposit",
+            "type": "deposit",
+            "index_type": "i64",
+            "key_names": [],
+            "key_types": []
+        },
+        {
+            "name": "sellorder",
+            "type": "order",
             "index_type": "i64",
             "key_names": [],
             "key_types": []
