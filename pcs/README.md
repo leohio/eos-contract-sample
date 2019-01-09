@@ -53,19 +53,19 @@ cleos get table pcstoycashio pcstoycashio token
 
 ```
 cleos get table pcstoycashio pcstoycashio token
-cleos get table pcstoycashio pcstoycashio bid
+cleos get table pcstoycashio pcstoycashio sellorder
 cleos get table eosio.token leohioleohio accounts
 
 # トークンを売りに出す
 cleos push action pcstoycashio servebid '["leohioleohio", 1, "0.1000 EOS", "serve bid order"]' -p leohioleohio@active
 
 cleos get table pcstoycashio pcstoycashio token
-cleos get table pcstoycashio pcstoycashio bid
+cleos get table pcstoycashio pcstoycashio sellorder
 
 # トークンを購入
 cleos push action eosio.token transfer '["mokemokecore", "pcstoycashio", "0.1000 EOS", "buy token#1 in pcstoycashio"]' -p mokemokecore@active
 
 cleos get table pcstoycashio pcstoycashio token
-cleos get table pcstoycashio pcstoycashio bid
+cleos get table pcstoycashio pcstoycashio sellorder
 cleos get table eosio.token leohioleohio accounts
 ```
