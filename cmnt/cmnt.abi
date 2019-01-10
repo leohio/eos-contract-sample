@@ -1,5 +1,5 @@
 {
-    "____comment": "This file was generated with eosio-abigen. DO NOT EDIT Tue Jan  8 01:53:09 2019",
+    "____comment": "This file was generated with eosio-abigen. DO NOT EDIT Thu Jan 10 23:34:02 2019",
     "version": "eosio::abi/1.0",
     "structs": [
         {
@@ -35,10 +35,6 @@
             "base": "",
             "fields": [
                 {
-                    "name": "sym",
-                    "type": "symbol_code"
-                },
-                {
                     "name": "content_id",
                     "type": "uint64"
                 },
@@ -49,11 +45,11 @@
             ]
         },
         {
-            "name": "balance",
+            "name": "burn",
             "base": "",
             "fields": [
                 {
-                    "name": "username",
+                    "name": "owner",
                     "type": "name"
                 },
                 {
@@ -63,7 +59,7 @@
             ]
         },
         {
-            "name": "burn",
+            "name": "burnbyid",
             "base": "",
             "fields": [
                 {
@@ -81,7 +77,7 @@
             "base": "",
             "fields": [
                 {
-                    "name": "buyer",
+                    "name": "user",
                     "type": "name"
                 },
                 {
@@ -95,7 +91,57 @@
             ]
         },
         {
-            "name": "cancelbid",
+            "name": "buyandunlock",
+            "base": "",
+            "fields": [
+                {
+                    "name": "user",
+                    "type": "name"
+                },
+                {
+                    "name": "token_id",
+                    "type": "uint64"
+                },
+                {
+                    "name": "subkey",
+                    "type": "public_key"
+                },
+                {
+                    "name": "memo",
+                    "type": "string"
+                }
+            ]
+        },
+        {
+            "name": "cancel",
+            "base": "",
+            "fields": [
+                {
+                    "name": "owner",
+                    "type": "name"
+                },
+                {
+                    "name": "quantity",
+                    "type": "asset"
+                }
+            ]
+        },
+        {
+            "name": "cancelburn",
+            "base": "",
+            "fields": [
+                {
+                    "name": "owner",
+                    "type": "name"
+                },
+                {
+                    "name": "quantity",
+                    "type": "asset"
+                }
+            ]
+        },
+        {
+            "name": "cancelbyid",
             "base": "",
             "fields": [
                 {
@@ -115,6 +161,10 @@
                 {
                     "name": "id",
                     "type": "uint64"
+                },
+                {
+                    "name": "sym",
+                    "type": "symbol_code"
                 },
                 {
                     "name": "price",
@@ -157,6 +207,34 @@
             ]
         },
         {
+            "name": "currency",
+            "base": "",
+            "fields": [
+                {
+                    "name": "supply",
+                    "type": "asset"
+                },
+                {
+                    "name": "issuer",
+                    "type": "name"
+                }
+            ]
+        },
+        {
+            "name": "deposit",
+            "base": "",
+            "fields": [
+                {
+                    "name": "owner",
+                    "type": "name"
+                },
+                {
+                    "name": "quantity",
+                    "type": "asset"
+                }
+            ]
+        },
+        {
             "name": "destroy",
             "base": "",
             "fields": [
@@ -175,10 +253,6 @@
                     "type": "name"
                 },
                 {
-                    "name": "sym",
-                    "type": "symbol_code"
-                },
-                {
                     "name": "content_id",
                     "type": "uint64"
                 }
@@ -194,6 +268,24 @@
                 },
                 {
                     "name": "quantity",
+                    "type": "asset"
+                },
+                {
+                    "name": "memo",
+                    "type": "string"
+                }
+            ]
+        },
+        {
+            "name": "issueandsell",
+            "base": "",
+            "fields": [
+                {
+                    "name": "quantity",
+                    "type": "asset"
+                },
+                {
+                    "name": "price",
                     "type": "asset"
                 },
                 {
@@ -247,6 +339,24 @@
             ]
         },
         {
+            "name": "obtain",
+            "base": "",
+            "fields": [
+                {
+                    "name": "user",
+                    "type": "name"
+                },
+                {
+                    "name": "sym",
+                    "type": "symbol_code"
+                },
+                {
+                    "name": "memo",
+                    "type": "string"
+                }
+            ]
+        },
+        {
             "name": "offer",
             "base": "",
             "fields": [
@@ -287,6 +397,34 @@
                 {
                     "name": "sym",
                     "type": "symbol_code"
+                }
+            ]
+        },
+        {
+            "name": "pvcount",
+            "base": "",
+            "fields": [
+                {
+                    "name": "timestamp",
+                    "type": "uint64"
+                },
+                {
+                    "name": "count",
+                    "type": "uint64"
+                }
+            ]
+        },
+        {
+            "name": "pvrate",
+            "base": "",
+            "fields": [
+                {
+                    "name": "timestamp",
+                    "type": "uint64"
+                },
+                {
+                    "name": "rate",
+                    "type": "float_t"
                 }
             ]
         },
@@ -332,7 +470,17 @@
             ]
         },
         {
-            "name": "servebid",
+            "name": "resetpvcount",
+            "base": "",
+            "fields": [
+                {
+                    "name": "content_id",
+                    "type": "uint64"
+                }
+            ]
+        },
+        {
+            "name": "sellbyid",
             "base": "",
             "fields": [
                 {
@@ -346,6 +494,24 @@
                 {
                     "name": "price",
                     "type": "asset"
+                }
+            ]
+        },
+        {
+            "name": "sendandbuy",
+            "base": "",
+            "fields": [
+                {
+                    "name": "user",
+                    "type": "name"
+                },
+                {
+                    "name": "token_id",
+                    "type": "uint64"
+                },
+                {
+                    "name": "subkey",
+                    "type": "public_key"
                 },
                 {
                     "name": "memo",
@@ -376,30 +542,12 @@
             ]
         },
         {
-            "name": "stats",
-            "base": "",
-            "fields": [
-                {
-                    "name": "supply",
-                    "type": "asset"
-                },
-                {
-                    "name": "issuer",
-                    "type": "name"
-                }
-            ]
-        },
-        {
             "name": "stopcontents",
             "base": "",
             "fields": [
                 {
                     "name": "manager",
                     "type": "name"
-                },
-                {
-                    "name": "sym",
-                    "type": "symbol_code"
                 },
                 {
                     "name": "content_id",
@@ -456,7 +604,7 @@
             ]
         },
         {
-            "name": "transferid",
+            "name": "transferbyid",
             "base": "",
             "fields": [
                 {
@@ -478,6 +626,11 @@
             ]
         },
         {
+            "name": "updatepvrate",
+            "base": "",
+            "fields": []
+        },
+        {
             "name": "withdraw",
             "base": "",
             "fields": [
@@ -496,7 +649,12 @@
             ]
         }
     ],
-    "types": [],
+    "types": [
+        {
+            "new_type_name": "float_t",
+            "type": "float32"
+        }
+    ],
     "actions": [
         {
             "name": "acceptoffer",
@@ -514,13 +672,33 @@
             "ricardian_contract": ""
         },
         {
+            "name": "burnbyid",
+            "type": "burnbyid",
+            "ricardian_contract": ""
+        },
+        {
             "name": "buy",
             "type": "buy",
             "ricardian_contract": ""
         },
         {
-            "name": "cancelbid",
-            "type": "cancelbid",
+            "name": "buyandunlock",
+            "type": "buyandunlock",
+            "ricardian_contract": ""
+        },
+        {
+            "name": "cancel",
+            "type": "cancel",
+            "ricardian_contract": ""
+        },
+        {
+            "name": "cancelburn",
+            "type": "cancelburn",
+            "ricardian_contract": ""
+        },
+        {
+            "name": "cancelbyid",
+            "type": "cancelbyid",
             "ricardian_contract": ""
         },
         {
@@ -544,6 +722,11 @@
             "ricardian_contract": ""
         },
         {
+            "name": "issueandsell",
+            "type": "issueandsell",
+            "ricardian_contract": ""
+        },
+        {
             "name": "issueunlock",
             "type": "issueunlock",
             "ricardian_contract": ""
@@ -551,6 +734,11 @@
         {
             "name": "lock",
             "type": "lock",
+            "ricardian_contract": ""
+        },
+        {
+            "name": "obtain",
+            "type": "obtain",
             "ricardian_contract": ""
         },
         {
@@ -569,8 +757,18 @@
             "ricardian_contract": ""
         },
         {
-            "name": "servebid",
-            "type": "servebid",
+            "name": "resetpvcount",
+            "type": "resetpvcount",
+            "ricardian_contract": ""
+        },
+        {
+            "name": "sellbyid",
+            "type": "sellbyid",
+            "ricardian_contract": ""
+        },
+        {
+            "name": "sendandbuy",
+            "type": "sendandbuy",
             "ricardian_contract": ""
         },
         {
@@ -589,8 +787,13 @@
             "ricardian_contract": ""
         },
         {
-            "name": "transferid",
-            "type": "transferid",
+            "name": "transferbyid",
+            "type": "transferbyid",
+            "ricardian_contract": ""
+        },
+        {
+            "name": "updatepvrate",
+            "type": "updatepvrate",
             "ricardian_contract": ""
         },
         {
@@ -601,22 +804,8 @@
     ],
     "tables": [
         {
-            "name": "accounts",
+            "name": "account",
             "type": "account",
-            "index_type": "i64",
-            "key_names": [],
-            "key_types": []
-        },
-        {
-            "name": "balance",
-            "type": "balance",
-            "index_type": "i64",
-            "key_names": [],
-            "key_types": []
-        },
-        {
-            "name": "bid",
-            "type": "order",
             "index_type": "i64",
             "key_names": [],
             "key_types": []
@@ -630,7 +819,14 @@
         },
         {
             "name": "currency",
-            "type": "stats",
+            "type": "currency",
+            "index_type": "i64",
+            "key_names": [],
+            "key_types": []
+        },
+        {
+            "name": "deposit",
+            "type": "deposit",
             "index_type": "i64",
             "key_names": [],
             "key_types": []
@@ -638,6 +834,27 @@
         {
             "name": "offer",
             "type": "offer",
+            "index_type": "i64",
+            "key_names": [],
+            "key_types": []
+        },
+        {
+            "name": "pv",
+            "type": "pvcount",
+            "index_type": "i64",
+            "key_names": [],
+            "key_types": []
+        },
+        {
+            "name": "pvrate",
+            "type": "pvrate",
+            "index_type": "i64",
+            "key_names": [],
+            "key_types": []
+        },
+        {
+            "name": "sellorder",
+            "type": "order",
             "index_type": "i64",
             "key_names": [],
             "key_types": []
