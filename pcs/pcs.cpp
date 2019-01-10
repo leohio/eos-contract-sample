@@ -5,11 +5,11 @@ using std::string;
 using std::vector;
 
 void pcs::create( name issuer, symbol_code sym ) {
-	require_auth( issuer ); // only create token by contract account
+    require_auth( issuer ); // only create token by contract account
     eosio_assert( issuer != get_self(), "do not create token by contract account" );
 
-	/// Check if issuer account exists
-	eosio_assert( is_account( issuer ), "issuer account does not exist");
+    /// Check if issuer account exists
+    eosio_assert( is_account( issuer ), "issuer account does not exist");
 
     eosio_assert( sym != symbol_code("EOS"), "EOS is invalid token symbol");
 
@@ -29,7 +29,7 @@ void pcs::create( name issuer, symbol_code sym ) {
 }
 
 void pcs::destroy( symbol_code sym ) {
-     // only destroy token by contract account
+    /// only destroy token by contract account
     require_auth( get_self() );
 
     /// Valid symbol
@@ -169,7 +169,7 @@ void pcs::transferid( name from, name to, uint64_t id, string memo ) {
     /// Change balance of both accounts
     decrease_balance( from, send_token->sym );
     add_balance( to, asset{ 1, symbol( send_token->sym, 0 ) } , from );
-}sell
+}
 
 void pcs::transfer( name from, name to, symbol_code sym, string memo ) {
     /// Ensure authorized to send from account
