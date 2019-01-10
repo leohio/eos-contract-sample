@@ -590,23 +590,6 @@ vector<string> pcs::split_by_comma( string str ) {
     return split_list;
 }
 
-uint8_t pcs::is_digit( string str ) {
-    eosio_assert( str.size() <= 256, "too long str" );
-    const char* c = str.c_str();
-
-    uint8_t i = 0;
-    uint8_t flag = 1;
-
-    for (; c[i]; ++i ) {
-        if ( c[i] < '0' || '9' < c[i] ) {
-            flag = 0;
-            break;
-        }
-    }
-
-    return flag;
-}
-
 /// dispatcher
 extern "C" {
     void apply( uint64_t receiver, uint64_t code, uint64_t action ){

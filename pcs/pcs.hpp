@@ -157,5 +157,4 @@ class [[eosio::contract]] pcs : public eosio::contract {
         uint64_t find_own_token( name owner, symbol_code sym );
         uint64_t find_pvdata_by_uri( symbol_code sym, string uri );
         vector<string> split_by_comma( string memo );
-        uint8_t is_digit( string str );
 };
