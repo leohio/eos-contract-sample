@@ -1,5 +1,5 @@
 {
-    "____comment": "This file was generated with eosio-abigen. DO NOT EDIT Thu Jan 10 03:29:44 2019",
+    "____comment": "This file was generated with eosio-abigen. DO NOT EDIT Thu Jan 10 15:55:44 2019",
     "version": "eosio::abi/1.0",
     "structs": [
         {
@@ -37,6 +37,28 @@
                 {
                     "name": "token_id",
                     "type": "uint64"
+                },
+                {
+                    "name": "memo",
+                    "type": "string"
+                }
+            ]
+        },
+        {
+            "name": "buyandunlock",
+            "base": "",
+            "fields": [
+                {
+                    "name": "user",
+                    "type": "name"
+                },
+                {
+                    "name": "token_id",
+                    "type": "uint64"
+                },
+                {
+                    "name": "subkey",
+                    "type": "public_key"
                 },
                 {
                     "name": "memo",
@@ -218,6 +240,28 @@
             ]
         },
         {
+            "name": "sendandbuy",
+            "base": "",
+            "fields": [
+                {
+                    "name": "user",
+                    "type": "name"
+                },
+                {
+                    "name": "token_id",
+                    "type": "uint64"
+                },
+                {
+                    "name": "subkey",
+                    "type": "public_key"
+                },
+                {
+                    "name": "memo",
+                    "type": "string"
+                }
+            ]
+        },
+        {
             "name": "servebid",
             "base": "",
             "fields": [
@@ -341,6 +385,11 @@
             "ricardian_contract": ""
         },
         {
+            "name": "buyandunlock",
+            "type": "buyandunlock",
+            "ricardian_contract": ""
+        },
+        {
             "name": "cancelbid",
             "type": "cancelbid",
             "ricardian_contract": ""
@@ -378,6 +427,11 @@
         {
             "name": "refleshkey",
             "type": "refleshkey",
+            "ricardian_contract": ""
+        },
+        {
+            "name": "sendandbuy",
+            "type": "sendandbuy",
             "ricardian_contract": ""
         },
         {

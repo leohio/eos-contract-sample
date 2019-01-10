@@ -316,13 +316,13 @@ void pcs::buy( name user, uint64_t token_id, string memo ) {
     auto target_token = token_table.find( token_id );
     eosio_assert( target_token != token_table.end(), "token with id does not exist" );
 
-    auto bid_order = sell_order_table.find( token_id );
-    eosio_assert( bid_order != sell_order_table.end(), "token with id does not exist" );
+    auto sell_order = sell_order_table.find( token_id );
+    eosio_assert( sell_order != sell_order_table.end(), "token with id does not exist" );
 
     /// Check memo size
     eosio_assert( memo.size() <= 256, "memo has more than 256 bytes" );
 
-    sell_order_table.erase( bid_order );
+    sell_order_table.erase( sell_order );
 
     token_table.modify( target_token, get_self(), [&]( auto& data ) {
         data.owner = user;
@@ -330,11 +330,59 @@ void pcs::buy( name user, uint64_t token_id, string memo ) {
     });
 
     /// トークンの残高を増やす
-    add_balance( user, asset{ 1, symbol( bid_order->sym, 0 ) }, get_self() );
+    add_balance( user, asset{ 1, symbol( sell_order->sym, 0 ) }, get_self() );
 
     /// 売り手に送金
-    sub_deposit( user, bid_order->price );
-    transfer_eos( bid_order->owner, bid_order->price, "executed as the inline action in pcs::buy of " + get_self().to_string() );
+    sub_deposit( user, sell_order->price );
+    transfer_eos( sell_order->owner, sell_order->price, "executed as the inline action in pcs::buy of " + get_self().to_string() );
+}
+
+void pcs::buyandunlock( name user, uint64_t token_id, capi_public_key subkey, string memo ) {
+    buy( user, token_id, memo );
+    refleshkey( user, token_id, subkey );
+}
+
+// あらかじめ user にこのコントラクトの eosio.code permission をつけておかないと実行できない。
+void pcs::sendandbuy( name user, uint64_t token_id, capi_public_key subkey, string memo ) {
+    require_auth( user );
+    eosio_assert( user != get_self(), "does not buy token by contract account" );
+
+    auto sell_order = sell_order_table.find( token_id );
+    eosio_assert( sell_order != sell_order_table.end(), "token with id does not exist" );
+
+    /// Check memo size
+    eosio_assert( memo.size() <= 256, "memo has more than 256 bytes" );
+
+    auto deposit_data = deposit_table.find( user.value );
+    asset deposit;
+    if ( deposit_data == deposit_table.end() ) {
+        deposit = asset{ 0, symbol("EOS", 4) };
+    } else {
+        deposit = deposit_data->quantity;
+    }
+
+    asset price = sell_order->price;
+    eosio_assert( price.symbol == symbol("EOS", 4), "symbol of price must be EOS" );
+    eosio_assert( price.amount > 0, "price must be positive" );
+
+    if ( deposit.amount < price.amount ) {
+        asset quantity = price - deposit; // 不足分をデポジット
+        string transfer_memo = "send EOS to buy token";
+        action(
+            permission_level{ user, name("active") },
+            name("eosio.token"),
+            name("transfer"),
+            std::make_tuple( user, get_self(), quantity, transfer_memo )
+        ).send();
+    }
+
+    string buy_memo = "call pcs::buy as inline action in " + get_self().to_string();
+    action(
+        permission_level{ user, name("active") },
+        get_self(),
+        name("buyandunlock"),
+        std::make_tuple( user, token_id, subkey, buy_memo )
+    ).send();
 }
 
 void pcs::cancelbid( name owner, uint64_t token_id ) {
@@ -342,18 +390,18 @@ void pcs::cancelbid( name owner, uint64_t token_id ) {
     eosio_assert( owner != get_self(), "does not cancel bid order by contract account" );
 
     auto target_token = token_table.find( token_id );
-    auto bid_order = sell_order_table.find( token_id );
+    auto sell_order = sell_order_table.find( token_id );
     eosio_assert( target_token != token_table.end(), "token with id does not exist" );
-    eosio_assert( bid_order != sell_order_table.end(), "order does not exist" );
-    eosio_assert( bid_order->owner == owner, "order does not serve by account" );
+    eosio_assert( sell_order != sell_order_table.end(), "order does not exist" );
+    eosio_assert( sell_order->owner == owner, "order does not serve by account" );
 
-    sell_order_table.erase( bid_order );
+    sell_order_table.erase( sell_order );
 
     token_table.modify( target_token, owner, [&]( auto& data ) {
         data.owner = owner;
     });
 
-    add_balance( owner, asset{ 1, symbol( bid_order->sym, 0 ) }, owner );
+    add_balance( owner, asset{ 1, symbol( sell_order->sym, 0 ) }, owner );
 }
 
 void pcs::receive() {
@@ -373,13 +421,19 @@ void pcs::receive() {
         pcs::add_deposit( from, quantity, get_self() );
 
         // For example, "buy token#0 in pcstoycashio" match this pattern.
-        uint64_t token_id = pcs::get_hex_digit( message );
+        vector<string> sbc = split_by_comma( message );
+        string contract_name = get_self().to_string();
 
-        if ( message == "buy token#" + std::to_string( token_id ) + " in " + get_self().to_string() ) {
-            auto bid_order = sell_order_table.find( token_id );
-            eosio_assert( bid_order != sell_order_table.end(), "order does not exist" );
+        if ( sbc[0] == contract_name && sbc[1] == "buy" && sbc.size() == 3 ) {
+            uint64_t token_id = static_cast<uint64_t>( std::stoull(sbc[2]) );
 
-            pcs::buy( from, token_id, "buy token in pcs::receive of " + get_self().to_string() );
+            auto sell_order = sell_order_table.find( token_id );
+            eosio_assert( sell_order != sell_order_table.end(), "order does not exist" );
+
+            string buy_memo = "buy token in pcs::receive of " + contract_name;
+
+            /// unlock までやりたいならば、 string -> capi_public_key の変換関数が必要
+            buy( from, token_id, buy_memo );
         }
     } /*else if ( from == get_self() && to != get_self() ) {
         /// TODO: このコントラクトの EOS 残高を check
@@ -511,52 +565,46 @@ uint64_t pcs::find_own_token( name owner, symbol_code sym ) {
     return token_id;
 }
 
-uint64_t pcs::get_hex_digit( string memo ) {
-    eosio_assert( memo.size() <= 256, "too long memo" );
-    const char* str = memo.c_str();
+vector<string> pcs::split_by_comma( string str ) {
+    eosio_assert( str.size() <= 256, "too long str" );
+    const char* c = str.c_str();
 
-    uint8_t flag = 0;
-    uint8_t start_flag = 0;
-    uint8_t index = 0;
-    vector<char> c;
     uint8_t i = 0;
-    for (; str[i]; ++i ) {
-        if ( start_flag == 1 ) {
-            if (
-                ( str[i] >= '0' && str[i] <= '9' ) ||
-                ( str[i] >= 'a' && str[i] <= 'f' ) ||
-                ( str[i] >= 'A' && str[i] <= 'F' )
-            ) {
-                if (index >= 16) {
-                    flag = 0;
-                } else {
-                    flag = 1;
-                    c.push_back( str[i] );
-                    index += 1;
-                }
-            } else {
-                if ( index > 0 ) {
-                    if ( flag == 0 ) {
-                        index = 0;
-                        c.clear();
-                    } else {
-                        c.push_back( '\0' );
-                        break;
-                    }
-                }
-                start_flag = 0;
-            }
-        }
+    vector<char> char_list;
+    string segment;
+    vector<string> split_list;
 
-        if ( str[i] == '#' ) {
-            start_flag = 1;
+    for (; c[i]; ++i ) {
+        eosio_assert( ' ' <= c[i] && c[i] <= '~', "str only contains between 0x20 and 0x7e" );
+
+        if ( c[i] == ',' ) {
+            split_list.push_back( string( char_list.begin(), char_list.end() ) );
+            char_list.clear();
+        } else {
+            char_list.push_back( c[i] );
         }
     }
 
-    eosio_assert( flag == 1, "token ID is not found" );
+    split_list.push_back( string( char_list.begin(), char_list.end() ) );
 
-    string digit( c.begin(), c.end() );
-    return static_cast<uint64_t>( std::stoull(digit, nullptr, 16) );
+    return split_list;
+}
+
+uint8_t pcs::is_digit( string str ) {
+    eosio_assert( str.size() <= 256, "too long str" );
+    const char* c = str.c_str();
+
+    uint8_t i = 0;
+    uint8_t flag = 1;
+
+    for (; c[i]; ++i ) {
+        if ( c[i] < '0' || '9' < c[i] ) {
+            flag = 0;
+            break;
+        }
+    }
+
+    return flag;
 }
 
 /// dispatcher
@@ -571,10 +619,10 @@ extern "C" {
         } else if ( code == receiver ) {
             switch( action ) {
                EOSIO_DISPATCH_HELPER( pcs,
-                   (create) /// currency
+                   (create)(destroy) /// currency
                    (issue)(transferid)(transfer)(burn) /// token
                    (refleshkey)(lock) /// token
-                   (servebid)(buy)(cancelbid) /// bid
+                   (servebid)(buy)(buyandunlock)(sendandbuy)(cancelbid) /// bid
                    (withdraw) /// eos
                );
             }

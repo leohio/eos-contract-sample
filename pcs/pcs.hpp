@@ -34,6 +34,8 @@ class [[eosio::contract]] pcs : public eosio::contract {
         [[eosio::action]] void         lock( name claimer, uint64_t token_id, string data, capi_signature sig );
         [[eosio::action]] void     servebid( name owner, uint64_t token_id, asset price, string memo );
         [[eosio::action]] void          buy( name user, uint64_t token_id, string memo );
+        [[eosio::action]] void buyandunlock( name user, uint64_t token_id, capi_public_key subkey, string memo );
+        [[eosio::action]] void   sendandbuy( name user, uint64_t token_id, capi_public_key subkey, string memo );
         [[eosio::action]] void    cancelbid( name owner, uint64_t token_id );
         [[eosio::action]] void     withdraw( name user, asset quantity, string memo );
         [[eosio::action]] void      receive();
@@ -145,7 +147,6 @@ class [[eosio::contract]] pcs : public eosio::contract {
 
         void mint_token( name user, symbol_code sym, name ram_payer );
         void mint_unlock_token( name user, symbol_code sym, capi_public_key subkey, name ram_payer );
-        uint64_t get_hex_digit( string memo );
         void transfer_eos( name to, asset value, string memo );
         void add_balance( name owner, asset quantity, name ram_payer );
         void decrease_balance( name owner, symbol_code sym );
@@ -155,4 +156,6 @@ class [[eosio::contract]] pcs : public eosio::contract {
         void sub_deposit( name owner, asset quantity );
         uint64_t find_own_token( name owner, symbol_code sym );
         uint64_t find_pvdata_by_uri( symbol_code sym, string uri );
+        vector<string> split_by_comma( string memo );
+        uint8_t is_digit( string str );
 };

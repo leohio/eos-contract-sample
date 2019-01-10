@@ -17,55 +17,55 @@ alias cleos='cleos -u https://api-kylin.eosasia.one:443'
 
 ```
 # トークンを作成する
-cleos push action pcstoycashio create '["leohioleohio", "PCS"]' -p pcstoycashio@active
+cleos push action toycashiopcs create '["leohioleohio", "PCS"]' -p toycashiopcs@active
 
-cleos get table pcstoycashio PCS currency
+cleos get table toycashiopcs PCS currency
 
 # 自分に対してトークンを2つ発行する
-cleos push action pcstoycashio issue '["leohioleohio", "2 PCS", "make PCS"]' -p leohioleohio@active
+cleos push action toycashiopcs issue '["leohioleohio", "2 PCS", "make PCS"]' -p leohioleohio@active
 
-cleos get table pcstoycashio PCS currency
-cleos get table pcstoycashio pcstoycashio token
-cleos get table pcstoycashio leohioleohio accounts
+cleos get table toycashiopcs PCS currency
+cleos get table toycashiopcs toycashiopcs token
+cleos get table toycashiopcs leohioleohio accounts
 
 # トークンに subkey を登録する
-cleos push action pcstoycashio refleshkey '["leohioleohio", 0, "EOS6KEzAbW8EowSEPc1fd5t1mLMmnVDk5rw3PMjNsnZqRN9PPD23S"]' -p leohioleohio@active
+cleos push action toycashiopcs refleshkey '["leohioleohio", 0, "EOS6KEzAbW8EowSEPc1fd5t1mLMmnVDk5rw3PMjNsnZqRN9PPD23S"]' -p leohioleohio@active
 
-cleos get table pcstoycashio pcstoycashio token
+cleos get table toycashiopcs toycashiopcs token
 
 # 所持トークンをトークンを送信する
-cleos push action pcstoycashio transfer '["leohioleohio", "mokemokecore", "PCS", "send token"]' -p leohioleohio@active
+cleos push action toycashiopcs transfer '["leohioleohio", "mokemokecore", "PCS", "send token"]' -p leohioleohio@active
 
-cleos get table pcstoycashio pcstoycashio token
+cleos get table toycashiopcs toycashiopcs token
 
 # token ID を指定してトークンを送信する
-cleos push action pcstoycashio transferid '["mokemokecore", "leohioleohio", 0, "return token"]' -p mokemokecore@active
+cleos push action toycashiopcs transferid '["mokemokecore", "leohioleohio", 0, "return token"]' -p mokemokecore@active
 
-cleos get table pcstoycashio pcstoycashio token
+cleos get table toycashiopcs toycashiopcs token
 
 # トークンを破棄する
-cleos push action pcstoycashio burn '["leohioleohio", 0]' -p leohioleohio@active
+cleos push action toycashiopcs burn '["leohioleohio", 0]' -p leohioleohio@active
 
-cleos get table pcstoycashio pcstoycashio token
+cleos get table toycashiopcs toycashiopcs token
 ```
 
 ### DEX
 
 ```
-cleos get table pcstoycashio pcstoycashio token
-cleos get table pcstoycashio pcstoycashio sellorder
+cleos get table toycashiopcs toycashiopcs token
+cleos get table toycashiopcs toycashiopcs sellorder
 cleos get table eosio.token leohioleohio accounts
 
 # トークンを売りに出す
-cleos push action pcstoycashio servebid '["leohioleohio", 1, "0.1000 EOS", "serve bid order"]' -p leohioleohio@active
+cleos push action toycashiopcs servebid '["leohioleohio", 1, "0.1000 EOS", "serve bid order"]' -p leohioleohio@active
 
-cleos get table pcstoycashio pcstoycashio token
-cleos get table pcstoycashio pcstoycashio sellorder
+cleos get table toycashiopcs toycashiopcs token
+cleos get table toycashiopcs toycashiopcs sellorder
 
 # トークンを購入
-cleos push action eosio.token transfer '["mokemokecore", "pcstoycashio", "0.1000 EOS", "buy token#1 in pcstoycashio"]' -p mokemokecore@active
+cleos push action eosio.token transfer '["mokemokecore", "toycashiopcs", "0.1000 EOS", "toycashiopcs,buy,1,EOS6KEzAbW8EowSEPc1fd5t1mLMmnVDk5rw3PMjNsnZqRN9PPD23S"]' -p mokemokecore@active
 
-cleos get table pcstoycashio pcstoycashio token
-cleos get table pcstoycashio pcstoycashio sellorder
+cleos get table toycashiopcs toycashiopcs token
+cleos get table toycashiopcs toycashiopcs sellorder
 cleos get table eosio.token leohioleohio accounts
 ```
