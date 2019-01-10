@@ -5,7 +5,7 @@ using std::string;
 using std::vector;
 
 void pcs::create( name issuer, symbol_code sym ) {
-    require_auth( issuer ); // only create token by contract account
+    require_auth( issuer );
     eosio_assert( issuer != get_self(), "do not create token by contract account" );
 
     /// Check if issuer account exists
@@ -63,7 +63,7 @@ void pcs::issue( name user, asset quantity, string memo ) {
     eosio_assert( sym.is_valid(), "invalid symbol name" );
     eosio_assert( quantity.symbol.precision() == 0, "quantity must be a whole number" );
 
-    // Check memo size
+    /// Check memo size
     eosio_assert( memo.size() <= 256, "memo has more than 256 bytes" );
 
     /// Ensure currency has been created
@@ -108,7 +108,7 @@ void pcs::issueunlock( name user, asset quantity, vector<capi_public_key> subkey
     eosio_assert( sym.is_valid(), "invalid symbol code" );
     eosio_assert( quantity.symbol.precision() == 0, "quantity must be a whole number" );
 
-    // Check memo size
+    /// Check memo size
     eosio_assert( memo.size() <= 256, "memo has more than 256 bytes" );
 
     /// Ensure currency has been created
@@ -125,7 +125,7 @@ void pcs::issueunlock( name user, asset quantity, vector<capi_public_key> subkey
     eosio_assert( quantity.amount > 0, "must issue positive quantity of NFT" );
     eosio_assert( quantity.symbol == currency_data->supply.symbol, "symbol code or precision mismatch" );
 
-    // Check that number of tokens matches subkey size
+    /// Check that number of tokens matches subkey size
     eosio_assert( quantity.amount == subkeys.size(), "mismatch between number of tokens and subkeys provided" );
 
     /// Increase supply and add balance
@@ -247,26 +247,26 @@ void pcs::refleshkey( name owner, uint64_t token_id, capi_public_key subkey ) {
 	add_balance( owner, asset{ 1, symbol( sym, 0 ) } , owner );
 }
 
-void pcs::lock( name claimer, uint64_t token_id, string data, capi_signature sig ) {
-    require_auth( claimer );
-    // eosio_assert( claimer != get_self(), "do not lock token by contract account" );
-
-    auto target_token = token_table.find( token_id );
-    eosio_assert( target_token != token_table.end(), "token with id does not exist" );
-
-    /// 署名検証
-    /// target_token に記載された public key に対応する
-    /// private key を知っている人のみがロックの権限をもつ
-    capi_public_key pk = target_token->subkey;
-    capi_checksum256 digest;
-    sha256(&data[0], data.size(), &digest);
-
-    assert_recover_key(&digest, (const char *)&sig, sizeof(sig), (const char *)&pk, sizeof(pk));
-
-    token_table.modify( target_token, get_self(), [&](auto& data) {
-        data.active = 0;
-    });
-}
+// void pcs::lock( name claimer, uint64_t token_id, string data, capi_signature sig ) {
+//     require_auth( claimer );
+//     // eosio_assert( claimer != get_self(), "do not lock token by contract account" );
+//
+//     auto target_token = token_table.find( token_id );
+//     eosio_assert( target_token != token_table.end(), "token with id does not exist" );
+//
+//     /// 署名検証
+//     /// target_token に記載された public key に対応する
+//     /// private key を知っている人のみがロックの権限をもつ
+//     capi_public_key pk = target_token->subkey;
+//     capi_checksum256 digest;
+//     sha256(&data[0], data.size(), &digest);
+//
+//     assert_recover_key(&digest, (const char *)&sig, sizeof(sig), (const char *)&pk, sizeof(pk));
+//
+//     token_table.modify( target_token, get_self(), [&](auto& data) {
+//         data.active = 0;
+//     });
+// }
 
 void pcs::servebid( name owner, uint64_t token_id, asset price, string memo ) {
     require_auth( owner );
@@ -303,11 +303,11 @@ void pcs::transfer_eos( name to, asset value, string memo ) {
     eosio_assert( memo.size() <= 256, "memo has more than 256 bytes" );
 
     action(
-        permission_level{ get_self(), name("active") }, // このアカウントの権限を用いて
-        name("eosio.token"), // このコントラクト内にある
-        name("transfer"), // このメソッドに
-        std::make_tuple( get_self(), to, value, memo ) // 引数をタプルで渡して
-    ).send(); // アクションを実行する
+        permission_level{ get_self(), name("active") },
+        name("eosio.token"),
+        name("transfer"),
+        std::make_tuple( get_self(), to, value, memo )
+    ).send();
 }
 
 void pcs::buy( name user, uint64_t token_id, string memo ) {
@@ -343,7 +343,7 @@ void pcs::buyandunlock( name user, uint64_t token_id, capi_public_key subkey, st
     refleshkey( user, token_id, subkey );
 }
 
-// あらかじめ user にこのコントラクトの eosio.code permission をつけておかないと実行できない。
+/// あらかじめ user にこのコントラクトの eosio.code permission をつけておかないと実行できない。
 void pcs::sendandbuy( name user, uint64_t token_id, capi_public_key subkey, string memo ) {
     require_auth( user );
     eosio_assert( user != get_self(), "does not buy token by contract account" );
@@ -367,7 +367,8 @@ void pcs::sendandbuy( name user, uint64_t token_id, capi_public_key subkey, stri
     eosio_assert( price.amount > 0, "price must be positive" );
 
     if ( deposit.amount < price.amount ) {
-        asset quantity = price - deposit; // 不足分をデポジット
+        /// 不足分をデポジット
+        asset quantity = price - deposit;
         string transfer_memo = "send EOS to buy token";
         action(
             permission_level{ user, name("active") },
@@ -421,7 +422,6 @@ void pcs::receive() {
     if ( to == get_self() && from != get_self() ) {
         pcs::add_deposit( from, quantity, get_self() );
 
-        // For example, "buy token#0 in pcstoycashio" match this pattern.
         vector<string> sbc = split_by_comma( message );
         string contract_name = get_self().to_string();
 
@@ -605,7 +605,7 @@ extern "C" {
                EOSIO_DISPATCH_HELPER( pcs,
                    (create)(destroy) /// currency
                    (issue)(transferid)(transfer)(burn) /// token
-                   (refleshkey)(lock) /// token
+                   (refleshkey) /// token
                    (servebid)(buy)(buyandunlock)(sendandbuy)(cancelbid) /// bid
                    (withdraw) /// eos
                );
