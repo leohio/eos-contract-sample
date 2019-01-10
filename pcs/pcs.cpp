@@ -5,7 +5,7 @@ using std::string;
 using std::vector;
 
 void pcs::create( name issuer, symbol_code sym ) {
-	require_auth( get_self() ); // only create token by contract account
+	require_auth( issuer ); // only create token by contract account
     eosio_assert( issuer != get_self(), "do not create token by contract account" );
 
 	/// Check if issuer account exists
@@ -18,8 +18,8 @@ void pcs::create( name issuer, symbol_code sym ) {
 
     /// Check if currency with symbol already exists
     currency_index currency_table( get_self(), sym.raw() );
-    auto existing_currency = currency_table.find( sym.raw() );
-    eosio_assert( existing_currency == currency_table.end(), "token with symbol already exists" );
+    auto currency_data = currency_table.find( sym.raw() );
+    eosio_assert( currency_data == currency_table.end(), "token with symbol already exists" );
 
     /// Create new currency
     currency_table.emplace( get_self(), [&]( auto& data ) {
@@ -37,12 +37,12 @@ void pcs::destroy( symbol_code sym ) {
 
     /// Check if currency with symbol already exists
     currency_index currency_table( get_self(), sym.raw() );
-    auto existing_currency = currency_table.find( sym.raw() );
-    eosio_assert( existing_currency != currency_table.end(), "token with symbol does not exists" );
+    auto currency_data = currency_table.find( sym.raw() );
+    eosio_assert( currency_data != currency_table.end(), "token with symbol does not exists" );
     eosio_assert( currency_data->supply == asset{ 0, symbol(sym, 0) }, "who has this token exists" );
 
     /// Create new currency
-    currency_table.erase( existing_currency );
+    currency_table.erase( currency_data );
 }
 
 /// subkey を登録しないでトークン発行
@@ -68,17 +68,17 @@ void pcs::issue( name user, asset quantity, string memo ) {
 
     /// Ensure currency has been created
     currency_index currency_table( get_self(), sym.raw() );
-    auto existing_currency = currency_table.find( sym.raw() );
-    eosio_assert( existing_currency != currency_table.end(), "token with symbol does not exist. create token before issue" );
+    auto currency_data = currency_table.find( sym.raw() );
+    eosio_assert( currency_data != currency_table.end(), "token with symbol does not exist. create token before issue" );
 
     /// Ensure have issuer authorization
-    name issuer = existing_currency->issuer;
+    name issuer = currency_data->issuer;
     require_auth( issuer );
 
     /// Ensure valid quantity
     eosio_assert( quantity.is_valid(), "invalid quantity" );
     eosio_assert( quantity.amount > 0, "must issue positive quantity of NFT" );
-    eosio_assert( quantity.symbol == existing_currency->supply.symbol, "symbol code or precision mismatch" );
+    eosio_assert( quantity.symbol == currency_data->supply.symbol, "symbol code or precision mismatch" );
 
     /// Increase supply and add balance
     add_supply( quantity );
@@ -113,17 +113,17 @@ void pcs::issueunlock( name user, asset quantity, vector<capi_public_key> subkey
 
     /// Ensure currency has been created
     currency_index currency_table( get_self(), sym.raw() );
-    auto existing_currency = currency_table.find( sym.raw() );
-    eosio_assert( existing_currency != currency_table.end(), "token with symbol does not exist. create token before issue" );
+    auto currency_data = currency_table.find( sym.raw() );
+    eosio_assert( currency_data != currency_table.end(), "token with symbol does not exist. create token before issue" );
 
     /// Ensure have issuer authorization
-    name issuer = existing_currency->issuer;
+    name issuer = currency_data->issuer;
     require_auth( issuer );
 
     /// valid quantity
     eosio_assert( quantity.is_valid(), "invalid quantity" );
     eosio_assert( quantity.amount > 0, "must issue positive quantity of NFT" );
-    eosio_assert( quantity.symbol == existing_currency->supply.symbol, "symbol code or precision mismatch" );
+    eosio_assert( quantity.symbol == currency_data->supply.symbol, "symbol code or precision mismatch" );
 
     // Check that number of tokens matches subkey size
     eosio_assert( quantity.amount == subkeys.size(), "mismatch between number of tokens and subkeys provided" );
@@ -169,7 +169,7 @@ void pcs::transferid( name from, name to, uint64_t id, string memo ) {
     /// Change balance of both accounts
     decrease_balance( from, send_token->sym );
     add_balance( to, asset{ 1, symbol( send_token->sym, 0 ) } , from );
-}
+}sell
 
 void pcs::transfer( name from, name to, symbol_code sym, string memo ) {
     /// Ensure authorized to send from account
