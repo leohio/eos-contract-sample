@@ -39,6 +39,7 @@ void pcs::destroy( symbol_code sym ) {
     currency_index currency_table( get_self(), sym.raw() );
     auto existing_currency = currency_table.find( sym.raw() );
     eosio_assert( existing_currency != currency_table.end(), "token with symbol does not exists" );
+    eosio_assert( currency_data->supply == asset{ 0, symbol(sym, 0) }, "who has " + sym.to_string() + " token exists" );
 
     /// Create new currency
     currency_table.erase( existing_currency );
