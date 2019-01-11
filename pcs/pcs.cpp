@@ -459,8 +459,8 @@ void pcs::receive() {
 
 void pcs::withdraw( name user, asset quantity, string memo ) {
     require_auth( user );
-    pcs::sub_deposit( user, quantity );
-    pcs::transfer_eos( user, quantity, memo );
+    sub_deposit( user, quantity );
+    transfer_eos( user, quantity, memo );
 }
 
 void pcs::add_balance( name owner, asset quantity, name ram_payer ) {
