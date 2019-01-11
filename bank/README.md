@@ -143,7 +143,7 @@ cleos set account permission yourcontract active '{
 compile cpp into wasm
 
 ```
-eosio-cpp -o bank.wasm bank.cpp
+eosio-cpp -o bank.wasm bank.cpp -abigen
 ```
 
 ### Set Contract
