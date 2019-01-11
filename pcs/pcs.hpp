@@ -44,19 +44,11 @@ class [[eosio::contract]] pcs : public eosio::contract {
          * Struct
         **/
 
-        struct [[eosio::table]] accounts {
+        struct [[eosio::table]] account {
             asset balance;
             uint64_t primary_key() const { return balance.symbol.code().raw(); }
         };
 
-        // struct [[eosio::table]] deposit {
-        //     name owner;
-        //     asset quantity;
-        //
-        //     uint64_t primary_key() const { return owner.value; }
-        //     uint64_t get_quantity() const { return quantity.amount; }
-        // };
-        //
         // statistics of currency
         struct [[eosio::table]] currency {
             asset supply;
@@ -121,9 +113,9 @@ class [[eosio::contract]] pcs : public eosio::contract {
          * Multi Index
         **/
 
-    	using account_index = eosio::multi_index< name("accounts"), accounts >;
+    	using account_index = eosio::multi_index< name("accounts"), account >;
 
-        using deposit_index = eosio::multi_index< name("deposit"), accounts >;
+        using deposit_index = eosio::multi_index< name("deposit"), account >;
 
         using total_deposit_index = eosio::multi_index< name("totaldeposit"), accounts >;
 
