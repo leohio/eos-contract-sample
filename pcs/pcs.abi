@@ -1,9 +1,9 @@
 {
-    "____comment": "This file was generated with eosio-abigen. DO NOT EDIT Fri Jan 11 22:14:05 2019",
+    "____comment": "This file was generated with eosio-abigen. DO NOT EDIT Sat Jan 12 00:57:11 2019",
     "version": "eosio::abi/1.0",
     "structs": [
         {
-            "name": "accounts",
+            "name": "account",
             "base": "",
             "fields": [
                 {
@@ -444,7 +444,7 @@
     "tables": [
         {
             "name": "accounts",
-            "type": "accounts",
+            "type": "account",
             "index_type": "i64",
             "key_names": [],
             "key_types": []
@@ -458,7 +458,7 @@
         },
         {
             "name": "deposit",
-            "type": "accounts",
+            "type": "account",
             "index_type": "i64",
             "key_names": [],
             "key_types": []
@@ -479,7 +479,7 @@
         },
         {
             "name": "totaldeposit",
-            "type": "accounts",
+            "type": "account",
             "index_type": "i64",
             "key_names": [],
             "key_types": []

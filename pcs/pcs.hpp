@@ -117,7 +117,7 @@ class [[eosio::contract]] pcs : public eosio::contract {
 
         using deposit_index = eosio::multi_index< name("deposit"), account >;
 
-        using total_deposit_index = eosio::multi_index< name("totaldeposit"), accounts >;
+        using total_deposit_index = eosio::multi_index< name("totaldeposit"), account >;
 
     	using currency_index = eosio::multi_index< name("currency"), currency,
     	    indexed_by< name("byissuer"), const_mem_fun< currency, uint64_t, &currency::get_issuer> > >;
@@ -132,7 +132,6 @@ class [[eosio::contract]] pcs : public eosio::contract {
 
     private:
 	    token_index token_table;
-        // deposit_index deposit_table;
         total_deposit_index total_deposit_table;
         sell_order_index sell_order_table;
 
