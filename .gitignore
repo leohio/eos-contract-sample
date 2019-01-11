@@ -1,8 +1,8 @@
-# receiveeos
+# bank
 
-receiveeos/compile.sh
-receiveeos/set_contract.sh
-receiveeos/nodeos.log
+bank/compile.sh
+bank/set_contract.sh
+bank/nodeos.log
 
 # toycashiopcs
 
