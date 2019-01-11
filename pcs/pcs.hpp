@@ -16,7 +16,7 @@ class [[eosio::contract]] pcs : public eosio::contract {
         pcs( name receiver, name code, datastream<const char*> ds ):
     	    contract::contract( receiver, code, ds ),
             token_table( receiver, receiver.value ),
-            deposit_table( receiver, receiver.value ),
+            total_deposit_table( receiver, receiver.value ),
             sell_order_table( receiver, receiver.value ) {}
 
         /**
@@ -44,19 +44,19 @@ class [[eosio::contract]] pcs : public eosio::contract {
          * Struct
         **/
 
-        struct [[eosio::table]] account {
+        struct [[eosio::table]] accounts {
             asset balance;
             uint64_t primary_key() const { return balance.symbol.code().raw(); }
         };
 
-        struct [[eosio::table]] deposit {
-            name owner;
-            asset quantity;
-
-            uint64_t primary_key() const { return owner.value; }
-            uint64_t get_quantity() const { return quantity.amount; }
-        };
-
+        // struct [[eosio::table]] deposit {
+        //     name owner;
+        //     asset quantity;
+        //
+        //     uint64_t primary_key() const { return owner.value; }
+        //     uint64_t get_quantity() const { return quantity.amount; }
+        // };
+        //
         // statistics of currency
         struct [[eosio::table]] currency {
             asset supply;
@@ -121,9 +121,11 @@ class [[eosio::contract]] pcs : public eosio::contract {
          * Multi Index
         **/
 
-    	using account_index = eosio::multi_index< name("account"), account >;
+    	using account_index = eosio::multi_index< name("accounts"), accounts >;
 
-        using deposit_index = eosio::multi_index< name("deposit"), deposit >;
+        using deposit_index = eosio::multi_index< name("deposit"), accounts >;
+
+        using total_deposit_index = eosio::multi_index< name("totaldeposit"), accounts >;
 
     	using currency_index = eosio::multi_index< name("currency"), currency,
     	    indexed_by< name("byissuer"), const_mem_fun< currency, uint64_t, &currency::get_issuer> > >;
@@ -138,7 +140,8 @@ class [[eosio::contract]] pcs : public eosio::contract {
 
     private:
 	    token_index token_table;
-        deposit_index deposit_table;
+        // deposit_index deposit_table;
+        total_deposit_index total_deposit_table;
         sell_order_index sell_order_table;
 
         /**
