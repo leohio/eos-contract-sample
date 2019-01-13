@@ -29,6 +29,7 @@ void cmnt::create( name issuer, symbol_code sym ) {
     currency_table.emplace( get_self(), [&]( auto& data ) {
         data.supply = asset{ 0, symbol( sym, 0 ) };
         data.issuer = issuer;
+        data.minimumprice = asset{ 1, symbol( "EOS", 4 ) };
     });
 }
 
@@ -321,6 +322,11 @@ void cmnt::sellbyid( name owner, uint64_t token_id, asset price ) {
     /// price に指定した asset が EOS であることの確認
     eosio_assert( price.symbol == symbol( "EOS", 4 ), "allow only EOS as price" );
 
+    symbol_code sym = target_token->sym;
+    auto currency_data = currency_table.find( sym.raw() );
+    eosio_assert( currency_data != currency_table.end(), "token with symbol do not exists" );
+    eosio_assert( price >= currency_data->minimumprice, "price is lower than minimum selling price" );
+
     add_sell_order( owner, token_id, price );
 
     token_table.modify( target_token, get_self(), [&]( auto& data ) {
@@ -328,7 +334,7 @@ void cmnt::sellbyid( name owner, uint64_t token_id, asset price ) {
     });
 
     /// Lower balance from owner
-    decrease_balance( owner, target_token->sym );
+    decrease_balance( owner, sym );
 }
 
 void cmnt::issueandsell( asset quantity, asset price, string memo ) {
@@ -627,13 +633,13 @@ void cmnt::acceptoffer( name manager, symbol_code sym, uint64_t offer_id ) {
     /// 受け入れられた offer は content に昇格する
     offer_list.erase( offer_data );
 
-    /// コンテンツが増えてきたら、古いものから消去する
+    /// TODO: コンテンツが増えてきたら、古いものから消去する
     // if ( contents_table.size() > 5 ) { // size メンバは存在しないので別の方法を探す
     //     auto oldest_content = contents_table.get_index<name("bytimestamp")>().lower_bound(0);
     //     contents_table.erase( oldest_content );
     // }
 
-    uint64_t now = current_time();
+    uint32_t now = current_time();
 
     contents_table.emplace( manager, [&]( auto& data ) {
         data.id = contents_table.available_primary_key();
@@ -641,12 +647,13 @@ void cmnt::acceptoffer( name manager, symbol_code sym, uint64_t offer_id ) {
         data.price = price;
         data.provider = provider;
         data.uri = uri;
-        data.count = 0;
+        data.pvcount = 0;
         data.accepted = now;
         data.active = 1;
     });
 
-    /// オファー料金が前もってコントラクトに振り込まれているか確認
+    update_pv_rate( sym, now, price );
+
     if ( price.amount != 0 ) {
         deposit_index deposit_table( get_self(), provider.value );
         auto deposit_data = deposit_table.find( symbol_code("EOS").raw() );
@@ -680,63 +687,68 @@ void cmnt::addpvcount( uint64_t contents_id, uint64_t pv_count ) {
     eosio_assert( contents_data != contents_table.end(), "this contents is not exist in the contents table" );
     eosio_assert( contents_data->active != 0, "this contents is not active" );
 
-    /// overflow 対策
-    eosio_assert( contents_data->count + pv_count > contents_data->count, "pv count overflow, so revert state." );
+    /// get block timestamp
+    uint64_t now = current_time();
+
+    /// add contents pv count
+    pv_count_index pv_count_table( get_self(), contents_id );
+    auto pv_count_data = pv_count_table.find( now );
+
+    if ( pv_count_data == pv_count_table.end() ) {
+        pv_count_table.emplace( get_self(), [&]( auto& data ) {
+            data.timestamp = now;
+            data.count = pv_count;
+        });
+    } else {
+        pv_count_table.modify( pv_count_data, get_self(), [&]( auto& data ) {
+            data.count += pv_count;
+        });
+    }
 
     contents_table.modify( contents_data, get_self(), [&]( auto& data ) {
-        data.count += pv_count;
+        data.pvcount += pv_count;
     });
 
-    /// get block timestamp
-    uint64_t now = current_time();
+    /// add community pv count
+    cmnty_pv_count_index cmnty_pv_count_table( get_self(), contents_id );
 
-    pv_count_index pv_count_table( get_self(), contents_id );
-    eosio_assert( pv_count_table.find( now ) == pv_count_table.end(), "already have entered data" );
+    auto cmnty_pv_count_data = cmnty_pv_count_table.find( now );
+    if ( cmnty_pv_count_data == cmnty_pv_count_table.end() ) {
+        cmnty_pv_count_table.emplace( get_self(), [&]( auto& data ) {
+            data.timestamp = now;
+            data.count = pv_count;
+        });
+    } else {
+        cmnty_pv_count_table.modify( cmnty_pv_count_data, get_self(), [&]( auto& data ) {
+            data.count += pv_count;
+        });
+    }
 
-    pv_count_table.emplace( get_self(), [&]( auto& data ) {
-        data.timestamp = now;
-        data.count = pv_count;
+    symbol_code sym = contents_data->sym;
+    auto currency_data = currency_table.find( sym.raw() );
+    eosio_assert( currency_data != currency_table.end(), "this currency does not exist" );
+
+    currency_table.modify( currency_data, get_self(), [&]( auto& data ) {
+        data.pvcount = get_cmnty_pv_count( sym );
     });
-}
 
-uint64_t cmnt::get_sum_of_pv_count( uint64_t contents_id ) {
-    uint64_t sum_of_pv = 0;
-    pv_count_index pv_count_table( get_self(), contents_id );
-    auto it = pv_count_table.begin();
-    for (; it != pv_count_table.end(); ++it ) {
-        eosio_assert( sum_of_pv + it->count >= sum_of_pv, "overflow occured, so revert state" );
-        sum_of_pv += it->count;
-        pv_count_table.erase( it );
-    }
-    return sum_of_pv;
-}
-
-void cmnt::updatepvrate() {
-    /// コントラクトアカウントのみが呼び出せる
-    require_auth( get_self() );
-
-    /// get block timestamp
-    uint64_t now = current_time();
-
-    eosio_assert( pv_rate_table.find( now ) == pv_rate_table.end(), "already have entered data" );
-
-    float_t last_pv_rate = 0;
-    auto last_pv_rate_data = pv_rate_table.rend();
-    if ( last_pv_rate_data != pv_rate_table.rbegin() ) {
-        last_pv_rate = last_pv_rate_data->rate;
+    /// add world pv count
+    auto world_pv_count_data = world_pv_count_table.find( now );
+    if ( world_pv_count_data == world_pv_count_table.end() ) {
+        world_pv_count_table.emplace( get_self(), [&]( auto& data ) {
+            data.timestamp = now;
+            data.count = pv_count;
+        });
+    } else {
+        world_pv_count_table.modify( world_pv_count_data, get_self(), [&]( auto& data ) {
+            data.count += pv_count;
+        });
     }
 
-    float_t pv_rate = last_pv_rate + 0;
-
-    // for () {
-    //     auto contents_data = contents_table.find( contents_id );
-    //     uint64_t add_pv_count = get_sum_of_pv_count( contents_id );
-    //     uint64_t last_pv_count = contents_data->count;
-    // }
-
-    pv_rate_table.emplace( get_self(), [&]( auto& data ) {
+    auto world_data = world_table.find( get_self().value );
+    world_table.modify( world_data, get_self(), [&]( auto& data ) {
         data.timestamp = now;
-        data.rate = pv_rate;
+        data.pvcount = get_world_pv_count();
     });
 }
 
@@ -749,7 +761,7 @@ void cmnt::resetpvcount( uint64_t contents_id ) {
     eosio_assert( contents_data != contents_table.end(), "this contents is not exist in the contents table" );
 
     contents_table.modify( contents_data, get_self(), [&]( auto& data ) {
-        data.count = 0;
+        data.pvcount = 0;
     });
 
     // pv_count_index pv_count_table( get_self(), contents_id );
@@ -773,6 +785,82 @@ void cmnt::dropcontents( name manager, uint64_t contents_id ) {
 
     auto contents_data = contents_table.find( contents_id );
     contents_table.erase( contents_data );
+}
+
+uint64_t cmnt::get_cmnty_pv_count( symbol_code sym ) {
+    cmnty_pv_count_index cmnty_pv_count_table( get_self(), sym.raw() );
+
+    /// あるいは過去30日分だけを取り出す
+    auto it = cmnty_pv_count_table.lower_bound( static_cast<uint64_t>( current_time() - 30*24*60*60 ) );
+
+    uint64_t cmnty_pv_count = 0;
+    for (; it != cmnty_pv_count_table.end(); ++it ) {
+        cmnty_pv_count += it->count;
+    }
+    return cmnty_pv_count;
+}
+
+uint64_t cmnt::get_world_pv_count() {
+    /// あるいは過去30日分だけを取り出す
+    auto it = world_pv_count_table.lower_bound( static_cast<uint64_t>( current_time() - 30*24*60*60 ) );
+
+    uint64_t world_pv_count = 0;
+    for (; it != world_pv_count_table.end(); ++it ) {
+        world_pv_count += it->count;
+    }
+    return world_pv_count;
+}
+
+
+void cmnt::update_pv_rate( symbol_code sym, uint32_t timestamp, asset new_offer_price ) {
+    eosio_assert( new_offer_price.symbol == symbol( "EOS", 4 ), "symbol of offer price must be EOS" );
+
+    eosio_assert( timestamp != 0, "invalid timestamp" );
+
+    auto currency_data = currency_table.find( sym.raw() );
+    eosio_assert( currency_data != currency_table.end(), "this currency does not exist" );
+    uint64_t cmnty_pv_count = currency_data->pvcount;
+
+    uint64_t world_pv_count = get_world_pv_count();
+
+    float_t last_pv_rate = 0;
+    auto latest_pv_rate_data = pv_rate_table.rend();
+    if ( latest_pv_rate_data != pv_rate_table.rbegin() ) {
+        last_pv_rate = latest_pv_rate_data->rate;
+    }
+
+    float_t pv_rate = (last_pv_rate * world_pv_count + new_offer_price.amount) / (world_pv_count + cmnty_pv_count);
+
+    auto pv_rate_data = pv_rate_table.find( timestamp );
+    if ( pv_rate_data == pv_rate_table.end() ) {
+        pv_rate_table.emplace( get_self(), [&]( auto& data ) {
+            data.timestamp = timestamp;
+            data.rate = pv_rate;
+        });
+    } else {
+        pv_rate_table.modify( pv_rate_data, get_self(), [&]( auto& data ) {
+            data.rate = pv_rate;
+        });
+    }
+}
+
+void cmnt::update_minimum_price( symbol_code sym ) {
+    auto currency_data = currency_table.find( sym.raw() );
+    eosio_assert( currency_data != currency_table.end(), "this currency does not exist" );
+    uint64_t cmnty_pv_count = currency_data->pvcount;
+
+    float_t last_pv_rate = 0;
+    auto latest_pv_rate_data = pv_rate_table.rend();
+    if ( latest_pv_rate_data != pv_rate_table.rbegin() ) {
+        last_pv_rate = latest_pv_rate_data->rate;
+    }
+
+    /// TODO: overflow 対策が必要?
+    int64_t minimum_price = cmnty_pv_count * last_pv_rate;
+
+    currency_table.modify( currency_data, get_self(), [&]( auto& data ) {
+        data.minimumprice = asset{ minimum_price, symbol("EOS", 4) };
+    });
 }
 
 void cmnt::add_balance( name owner, asset quantity, name ram_payer ) {
@@ -1024,7 +1112,6 @@ extern "C" {
                    // (acceptoffer)
                    // (removeoffer)
                    // (addpvcount)
-                   // // (updatepvrate)
                    // (stopcontents)
                    // (dropcontents)
                );

@@ -1,5 +1,5 @@
 {
-    "____comment": "This file was generated with eosio-abigen. DO NOT EDIT Sat Jan 12 01:26:47 2019",
+    "____comment": "This file was generated with eosio-abigen. DO NOT EDIT Sun Jan 13 18:54:51 2019",
     "version": "eosio::abi/1.0",
     "structs": [
         {
@@ -179,7 +179,7 @@
                     "type": "string"
                 },
                 {
-                    "name": "count",
+                    "name": "pvcount",
                     "type": "uint64"
                 },
                 {
@@ -217,6 +217,14 @@
                 {
                     "name": "issuer",
                     "type": "name"
+                },
+                {
+                    "name": "minimumprice",
+                    "type": "asset"
+                },
+                {
+                    "name": "pvcount",
+                    "type": "uint64"
                 }
             ]
         },
@@ -406,7 +414,7 @@
             "fields": [
                 {
                     "name": "timestamp",
-                    "type": "uint64"
+                    "type": "uint32"
                 },
                 {
                     "name": "count",
@@ -420,7 +428,7 @@
             "fields": [
                 {
                     "name": "timestamp",
-                    "type": "uint64"
+                    "type": "uint32"
                 },
                 {
                     "name": "rate",
@@ -626,11 +634,6 @@
             ]
         },
         {
-            "name": "updatepvrate",
-            "base": "",
-            "fields": []
-        },
-        {
             "name": "withdraw",
             "base": "",
             "fields": [
@@ -645,6 +648,28 @@
                 {
                     "name": "memo",
                     "type": "string"
+                }
+            ]
+        },
+        {
+            "name": "world",
+            "base": "",
+            "fields": [
+                {
+                    "name": "self",
+                    "type": "name"
+                },
+                {
+                    "name": "timestamp",
+                    "type": "uint32"
+                },
+                {
+                    "name": "pvrate",
+                    "type": "float_t"
+                },
+                {
+                    "name": "pvcount",
+                    "type": "uint64"
                 }
             ]
         }
@@ -792,11 +817,6 @@
             "ricardian_contract": ""
         },
         {
-            "name": "updatepvrate",
-            "type": "updatepvrate",
-            "ricardian_contract": ""
-        },
-        {
             "name": "withdraw",
             "type": "withdraw",
             "ricardian_contract": ""
@@ -811,8 +831,22 @@
             "key_types": []
         },
         {
+            "name": "communitypv",
+            "type": "pvcount",
+            "index_type": "i64",
+            "key_names": [],
+            "key_types": []
+        },
+        {
             "name": "contents",
             "type": "content",
+            "index_type": "i64",
+            "key_names": [],
+            "key_types": []
+        },
+        {
+            "name": "contentspv",
+            "type": "pvcount",
             "index_type": "i64",
             "key_names": [],
             "key_types": []
@@ -834,13 +868,6 @@
         {
             "name": "offer",
             "type": "offer",
-            "index_type": "i64",
-            "key_names": [],
-            "key_types": []
-        },
-        {
-            "name": "pv",
-            "type": "pvcount",
             "index_type": "i64",
             "key_names": [],
             "key_types": []
@@ -869,6 +896,20 @@
         {
             "name": "totaldeposit",
             "type": "account",
+            "index_type": "i64",
+            "key_names": [],
+            "key_types": []
+        },
+        {
+            "name": "totalpv",
+            "type": "pvcount",
+            "index_type": "i64",
+            "key_names": [],
+            "key_types": []
+        },
+        {
+            "name": "world",
+            "type": "world",
             "index_type": "i64",
             "key_names": [],
             "key_types": []
