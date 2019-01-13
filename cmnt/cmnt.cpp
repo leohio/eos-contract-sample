@@ -1,3 +1,8 @@
+/**
+ * @environment
+ *     eosio.cdt v1.3.2
+**/
+
 #include "cmnt.hpp"
 
 using namespace eosio;
@@ -415,11 +420,11 @@ void cmnt::sendandbuy( name user, uint64_t token_id, capi_public_key subkey, str
     /// Check memo size
     eosio_assert( memo.size() <= 256, "memo has more than 256 bytes" );
 
-    auto deposit_data = deposit_table.find( user.value );
-    asset deposit;
-    if ( deposit_data == deposit_table.end() ) {
-        deposit = asset{ 0, symbol("EOS", 4) };
-    } else {
+    deposit_index deposit_table( get_self(), user.value );
+    auto deposit_data = deposit_table.find( symbol_code("EOS").raw() );
+    asset deposit = asset{ 0, symbol("EOS", 4) };
+
+    if ( deposit_data != deposit_table.end() ) {
         deposit = deposit_data->quantity;
     }
 
@@ -515,8 +520,6 @@ void cmnt::receive() {
     asset quantity = transfer_data.quantity;
     string message = transfer_data.memo;
 
-    eosio_assert( from == get_self() && to != get_self(), "does not allow to transfer from this contract to another" );
-
     /// Because "receive" action is called when this contract account
     /// is the sender or receiver of "eosio.token::transfer",
     /// so `to == get_self()` is needed.
@@ -535,15 +538,26 @@ void cmnt::receive() {
             eosio_assert( sell_order != sell_order_table.end(), "order does not exist" );
 
             /// unlock までやりたいならば、 string -> capi_public_key の変換関数が必要
-            buy( from, token_id, "buy token in cmnt::receive of " + contract_name );
-        }/* else if ( sbc[0] == contract_name && sbc[1] == "obtain" && sbc.size() == 3 ) {
-            symbol_code sym( sbc[2] );
+            buy( from, token_id, string("buy token in cmnt::receive of ") + contract_name );
+        }
+    } else if ( from == get_self() && to != get_self() ) {
+        auto total_deposit = total_deposit_table.find( symbol_code("EOS").raw() );
+        asset total_amount = asset{ 0, symbol("EOS", 4) };
 
-            auto currency_data = currency_table.find( sym.raw() );
-            eosio_assert( currency_data != currency_table.end(), "the symbol of token does not exist" );
+        if ( total_deposit != total_deposit_table.end() ) {
+            total_amount = total_deposit->balance;
+        }
 
-            obtain( from, sym, "obtain token in cmnt::receive of " + contract_name );
-        }*/
+        account_index account_table( name("eosio.token"), get_self().value );
+        auto account_data = account_table.find( symbol_code("EOS").raw() );
+        asset current_amount = asset{ 0, symbol("EOS", 4) };
+
+        if ( account_data != account_table.end() ) {
+            current_amount = account_data->balance;
+        }
+
+        /// このコントラクトの EOS 残高を check し、預かっている額よりも減らないように監視する
+        eosio_assert( total_amount <= current_amount, "this contract must leave at least total deposit" );
     }
 }
 
@@ -566,10 +580,11 @@ void cmnt::setoffer( name provider, symbol_code sym, string uri, asset price ) {
 
     /// オファー料金が前もってコントラクトに振り込まれているか確認
     if ( price.amount != 0 ) {
-        auto balance_data = deposit_table.find( provider.value );
-        eosio_assert( balance_data != deposit_table.end(), "your balance data do not exist" );
+        deposit_index deposit_table( get_self(), provider.value );
+        auto deposit_data = deposit_table.find( symbol_code("EOS").raw() );
+        eosio_assert( deposit_data != deposit_table.end(), "your balance data do not exist" );
 
-        asset deposit = balance_data->quantity;
+        asset deposit = deposit_data->quantity;
         eosio_assert( deposit.amount >= price.amount, "offer fee exceed your deposit" );
     }
 
@@ -633,8 +648,9 @@ void cmnt::acceptoffer( name manager, symbol_code sym, uint64_t offer_id ) {
 
     /// オファー料金が前もってコントラクトに振り込まれているか確認
     if ( price.amount != 0 ) {
-        auto balance_data = deposit_table.find( provider.value );
-        eosio_assert( balance_data != deposit_table.end(), "your balance data do not exist" );
+        deposit_index deposit_table( get_self(), provider.value );
+        auto deposit_data = deposit_table.find( symbol_code("EOS").raw() );
+        eosio_assert( deposit_data != deposit_table.end(), "your balance data do not exist" );
 
         sub_deposit( provider, price );
         transfer_eos( manager, price, "executed as the inline action in cmnt::acceptoffer of " + get_self().to_string() );
@@ -825,16 +841,29 @@ void cmnt::add_deposit( name owner, asset quantity, name ram_payer ) {
     eosio_assert( is_account( ram_payer ), "ram_payer account does not exist" );
     eosio_assert( quantity.symbol == symbol( "EOS", 4 ), "must EOS token" );
 
-    auto balance_data = deposit_table.find( owner.value );
+    deposit_index deposit_table( get_self(), owner.value );
+    auto deposit_data = deposit_table.find( symbol_code("EOS").raw() );
 
-    if( balance_data == deposit_table.end() ) {
+    if( deposit_data == deposit_table.end() ) {
         deposit_table.emplace( ram_payer, [&]( auto& data ) {
             data.owner = owner;
             data.quantity = quantity;
         });
     } else {
-        deposit_table.modify( balance_data, get_self(), [&]( auto& data ) {
+        deposit_table.modify( deposit_data, get_self(), [&]( auto& data ) {
             data.quantity += quantity;
+        });
+    }
+
+    auto total_deposit = total_deposit_table.find( symbol_code("EOS").raw() );
+
+    if ( total_deposit == total_deposit_table.end() ) {
+        total_deposit_table.emplace( get_self(), [&]( auto& data ) {
+            data.balance = quantity;
+        });
+    } else {
+        total_deposit_table.modify( total_deposit, get_self(), [&]( auto& data ) {
+            data.balance += quantity;
         });
     }
 }
@@ -844,17 +873,28 @@ void cmnt::sub_deposit( name owner, asset quantity ) {
     eosio_assert( quantity.symbol == symbol( "EOS", 4 ), "must be EOS token" );
     eosio_assert( quantity.amount >= 0, "must be nonnegative" );
 
-    auto balance_data = deposit_table.find( owner.value );
-    eosio_assert( balance_data != deposit_table.end(), "your balance data do not exist" );
+    deposit_index deposit_table( get_self(), owner.value );
+    auto deposit_data = deposit_table.find( symbol_code("EOS").raw() );
+    eosio_assert( deposit_data != deposit_table.end(), "your balance data do not exist" );
+    eosio_assert( deposit_data->quantity >= quantity, "exceed the withdrawable amount" );
 
-    asset deposit = balance_data->quantity;
-    eosio_assert( deposit.amount >= quantity.amount, "exceed the withdrawable amount" );
-
-    if ( deposit.amount == quantity.amount ) {
-        deposit_table.erase( balance_data );
-    } else if ( deposit.amount > quantity.amount ) {
-        deposit_table.modify( balance_data, get_self(), [&]( auto& data ) {
+    if ( deposit_data->quantity == quantity ) {
+        deposit_table.erase( deposit_data );
+    } else {
+        deposit_table.modify( deposit_data, get_self(), [&]( auto& data ) {
             data.quantity -= quantity;
+        });
+    }
+
+    auto total_deposit = total_deposit_table.find( symbol_code("EOS").raw() );
+    eosio_assert( total_deposit != total_deposit_table.end(), "total deposit data do not exist" );
+    eosio_assert( total_deposit->balance >= quantity, "can not subtract more than total deposit" );
+
+    if ( total_deposit->balance == quantity ) {
+        total_deposit_table.erase( total_deposit );
+    } else {
+        total_deposit_table.modify( total_deposit, get_self(), [&]( auto& data ) {
+            data.balance -= quantity;
         });
     }
 }

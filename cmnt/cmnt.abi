@@ -1,5 +1,5 @@
 {
-    "____comment": "This file was generated with eosio-abigen. DO NOT EDIT Thu Jan 10 23:34:02 2019",
+    "____comment": "This file was generated with eosio-abigen. DO NOT EDIT Sat Jan 12 01:26:47 2019",
     "version": "eosio::abi/1.0",
     "structs": [
         {
@@ -804,7 +804,7 @@
     ],
     "tables": [
         {
-            "name": "account",
+            "name": "accounts",
             "type": "account",
             "index_type": "i64",
             "key_names": [],
@@ -862,6 +862,13 @@
         {
             "name": "token",
             "type": "token",
+            "index_type": "i64",
+            "key_names": [],
+            "key_types": []
+        },
+        {
+            "name": "totaldeposit",
+            "type": "account",
             "index_type": "i64",
             "key_names": [],
             "key_types": []

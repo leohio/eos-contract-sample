@@ -1,7 +1,12 @@
+/**
+ * @environment
+ *     eosio.cdt v1.3.2
+**/
+
 #include <eosiolib/eosio.hpp>
-#include <eosiolib/asset.hpp> // asset, symbol
-#include <eosiolib/crypto.h> // assert_recover_key
-#include <eosiolib/action.hpp> // inline action
+#include <eosiolib/asset.hpp> /* asset, symbol */
+// #include <eosiolib/crypto.h> /* assert_recover_key */
+#include <eosiolib/action.hpp> /* inline action */
 
 using namespace eosio;
 using std::string;
@@ -17,6 +22,7 @@ class [[eosio::contract]] cmnt : public eosio::contract {
     	    contract::contract( receiver, code, ds ),
             token_table( receiver, receiver.value ),
             deposit_table( receiver, receiver.value ),
+            total_deposit_table( receiver, receiver.value ),
             currency_table( receiver, receiver.value ),
             sell_order_table( receiver, receiver.value ),
             contents_table( receiver, receiver.value ),
@@ -186,9 +192,11 @@ class [[eosio::contract]] cmnt : public eosio::contract {
          * Multi Index
         **/
 
-    	using account_index = eosio::multi_index< name("account"), account >;
+    	using account_index = eosio::multi_index< name("accounts"), account >;
 
         using deposit_index = eosio::multi_index< name("deposit"), deposit >;
+
+        using total_deposit_index = eosio::multi_index< name("totaldeposit"), account >;
 
     	using currency_index = eosio::multi_index< name("currency"), currency,
     	    indexed_by< name("byissuer"), const_mem_fun<currency, uint64_t, &currency::get_issuer> > >;
@@ -214,6 +222,7 @@ class [[eosio::contract]] cmnt : public eosio::contract {
     private:
 	    token_index token_table;
         deposit_index deposit_table; // table of eos balance
+        total_deposit_index total_deposit_table;
         currency_index currency_table;
         sell_order_index sell_order_table;
         content_index contents_table;
