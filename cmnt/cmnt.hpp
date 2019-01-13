@@ -280,4 +280,54 @@ class [[eosio::contract]] cmnt : public eosio::contract {
         uint64_t get_cmnty_pv_count( symbol_code sym );
         uint64_t get_world_pv_count();
         vector<string> split_by_comma( string memo );
+
+        /// accounts, deposit, totaldeposit, currency, token 以外のデータをすべて消去する
+        // void initialize_world() {
+        //     auto world_data = world_table.find( get_self().value );
+        //     if ( world_data != world_table.end() ) {
+        //         world_table.erase( world_data );
+        //     }
+        //
+        //     for ( auto it = currency_table.begin(); it != currency_table.end(); ++it ) {
+        //         symbol_code sym = it->supply.symbol.code();
+        //
+        //         offer_index offer_table( get_self(), sym.raw() );
+        //         for ( auto it2 = offer_table.begin(); it2 != offer_table.end(); ++it2 ) {
+        //             offer_table.erase( it2 );
+        //         }
+        //
+        //         cmnty_pv_count_index cmnty_pv_count_table( get_self(), sym.raw() );
+        //         for ( auto it2 = cmnty_pv_count_table.begin(); it2 != cmnty_pv_count_table.end(); ++it2 ) {
+        //             cmnty_pv_count_table.erase( it2 );
+        //         }
+        //
+        //         currency_table.modify( it, get_self(), [&]( auto& data ) {
+        //             data.minimumprice = asset{ 0, symbol("EOS", 4) };
+        //             data.pvcount = 0;
+        //         });
+        //     }
+        //
+        //     for ( auto it = sell_order_table.begin(); it != sell_order_table.end(); ++it ) {
+        //         sell_order_table.erase( it );
+        //     }
+        //
+        //     for ( auto it = contents_table.begin(); it != contents_table.end(); ++it ) {
+        //         uint64_t contents_id = it->id;
+        //         pv_count_index pv_count_table( get_self(), contents_id );
+        //
+        //         for ( auto it2 = pv_count_table.begin(); it2 != pv_count_table.end(); ++it2 ) {
+        //             pv_count_table.erase( it2 );
+        //         }
+        //
+        //         contents_table.erase( it );
+        //     }
+        //
+        //     for ( auto it = world_pv_count_table.begin(); it != world_pv_count_table.end(); ++it ) {
+        //         world_pv_count_table.erase( it );
+        //     }
+        //
+        //     for ( auto it = pv_rate_table.begin(); it != pv_rate_table.end(); ++it ) {
+        //         pv_rate_table.erase( it );
+        //     }
+        // }
 };
