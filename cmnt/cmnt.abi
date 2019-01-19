@@ -1,5 +1,5 @@
 {
-    "____comment": "This file was generated with eosio-abigen. DO NOT EDIT Sun Jan 13 18:54:51 2019",
+    "____comment": "This file was generated with eosio-abigen. DO NOT EDIT Sun Jan 20 03:53:10 2019",
     "version": "eosio::abi/1.0",
     "structs": [
         {
@@ -67,6 +67,10 @@
                     "type": "name"
                 },
                 {
+                    "name": "sym",
+                    "type": "symbol_code"
+                },
+                {
                     "name": "token_id",
                     "type": "uint64"
                 }
@@ -79,6 +83,10 @@
                 {
                     "name": "user",
                     "type": "name"
+                },
+                {
+                    "name": "sym",
+                    "type": "symbol_code"
                 },
                 {
                     "name": "token_id",
@@ -97,6 +105,10 @@
                 {
                     "name": "user",
                     "type": "name"
+                },
+                {
+                    "name": "sym",
+                    "type": "symbol_code"
                 },
                 {
                     "name": "token_id",
@@ -149,8 +161,26 @@
                     "type": "name"
                 },
                 {
+                    "name": "sym",
+                    "type": "symbol_code"
+                },
+                {
                     "name": "token_id",
                     "type": "uint64"
+                }
+            ]
+        },
+        {
+            "name": "community",
+            "base": "",
+            "fields": [
+                {
+                    "name": "manager",
+                    "type": "uint64"
+                },
+                {
+                    "name": "ratio",
+                    "type": "float_t"
                 }
             ]
         },
@@ -223,22 +253,20 @@
                     "type": "asset"
                 },
                 {
-                    "name": "pvcount",
+                    "name": "numofmember",
                     "type": "uint64"
-                }
-            ]
-        },
-        {
-            "name": "deposit",
-            "base": "",
-            "fields": [
-                {
-                    "name": "owner",
-                    "type": "name"
                 },
                 {
-                    "name": "quantity",
-                    "type": "asset"
+                    "name": "numofmanager",
+                    "type": "uint64"
+                },
+                {
+                    "name": "othersratio",
+                    "type": "float_t"
+                },
+                {
+                    "name": "pvcount",
+                    "type": "uint64"
                 }
             ]
         },
@@ -253,7 +281,7 @@
             ]
         },
         {
-            "name": "dropcontents",
+            "name": "dropcontent",
             "base": "",
             "fields": [
                 {
@@ -325,28 +353,6 @@
             ]
         },
         {
-            "name": "lock",
-            "base": "",
-            "fields": [
-                {
-                    "name": "claimer",
-                    "type": "name"
-                },
-                {
-                    "name": "token_id",
-                    "type": "uint64"
-                },
-                {
-                    "name": "data",
-                    "type": "string"
-                },
-                {
-                    "name": "sig",
-                    "type": "signature"
-                }
-            ]
-        },
-        {
             "name": "obtain",
             "base": "",
             "fields": [
@@ -401,10 +407,6 @@
                 {
                     "name": "owner",
                     "type": "name"
-                },
-                {
-                    "name": "sym",
-                    "type": "symbol_code"
                 }
             ]
         },
@@ -450,6 +452,10 @@
                     "type": "name"
                 },
                 {
+                    "name": "sym",
+                    "type": "symbol_code"
+                },
+                {
                     "name": "token_id",
                     "type": "uint64"
                 },
@@ -488,12 +494,34 @@
             ]
         },
         {
+            "name": "sell",
+            "base": "",
+            "fields": [
+                {
+                    "name": "owner",
+                    "type": "name"
+                },
+                {
+                    "name": "quantity",
+                    "type": "asset"
+                },
+                {
+                    "name": "price",
+                    "type": "asset"
+                }
+            ]
+        },
+        {
             "name": "sellbyid",
             "base": "",
             "fields": [
                 {
                     "name": "owner",
                     "type": "name"
+                },
+                {
+                    "name": "sym",
+                    "type": "symbol_code"
                 },
                 {
                     "name": "token_id",
@@ -514,6 +542,10 @@
                     "type": "name"
                 },
                 {
+                    "name": "sym",
+                    "type": "symbol_code"
+                },
+                {
                     "name": "token_id",
                     "type": "uint64"
                 },
@@ -524,6 +556,32 @@
                 {
                     "name": "memo",
                     "type": "string"
+                }
+            ]
+        },
+        {
+            "name": "setmanager",
+            "base": "",
+            "fields": [
+                {
+                    "name": "sym",
+                    "type": "symbol_code"
+                },
+                {
+                    "name": "manager_token_id",
+                    "type": "uint64"
+                },
+                {
+                    "name": "manager_token_list",
+                    "type": "uint64[]"
+                },
+                {
+                    "name": "ratio_list",
+                    "type": "uint64[]"
+                },
+                {
+                    "name": "others_ratio",
+                    "type": "uint64"
                 }
             ]
         },
@@ -550,7 +608,21 @@
             ]
         },
         {
-            "name": "stopcontents",
+            "name": "startcontent",
+            "base": "",
+            "fields": [
+                {
+                    "name": "manager",
+                    "type": "name"
+                },
+                {
+                    "name": "content_id",
+                    "type": "uint64"
+                }
+            ]
+        },
+        {
+            "name": "stopcontent",
             "base": "",
             "fields": [
                 {
@@ -578,10 +650,6 @@
                 {
                     "name": "owner",
                     "type": "name"
-                },
-                {
-                    "name": "sym",
-                    "type": "symbol_code"
                 },
                 {
                     "name": "active",
@@ -622,6 +690,10 @@
                 {
                     "name": "to",
                     "type": "name"
+                },
+                {
+                    "name": "sym",
+                    "type": "symbol_code"
                 },
                 {
                     "name": "id",
@@ -737,8 +809,8 @@
             "ricardian_contract": ""
         },
         {
-            "name": "dropcontents",
-            "type": "dropcontents",
+            "name": "dropcontent",
+            "type": "dropcontent",
             "ricardian_contract": ""
         },
         {
@@ -754,11 +826,6 @@
         {
             "name": "issueunlock",
             "type": "issueunlock",
-            "ricardian_contract": ""
-        },
-        {
-            "name": "lock",
-            "type": "lock",
             "ricardian_contract": ""
         },
         {
@@ -787,6 +854,11 @@
             "ricardian_contract": ""
         },
         {
+            "name": "sell",
+            "type": "sell",
+            "ricardian_contract": ""
+        },
+        {
             "name": "sellbyid",
             "type": "sellbyid",
             "ricardian_contract": ""
@@ -797,13 +869,23 @@
             "ricardian_contract": ""
         },
         {
+            "name": "setmanager",
+            "type": "setmanager",
+            "ricardian_contract": ""
+        },
+        {
             "name": "setoffer",
             "type": "setoffer",
             "ricardian_contract": ""
         },
         {
-            "name": "stopcontents",
-            "type": "stopcontents",
+            "name": "startcontent",
+            "type": "startcontent",
+            "ricardian_contract": ""
+        },
+        {
+            "name": "stopcontent",
+            "type": "stopcontent",
             "ricardian_contract": ""
         },
         {
@@ -826,6 +908,13 @@
         {
             "name": "accounts",
             "type": "account",
+            "index_type": "i64",
+            "key_names": [],
+            "key_types": []
+        },
+        {
+            "name": "community",
+            "type": "community",
             "index_type": "i64",
             "key_names": [],
             "key_types": []
@@ -860,7 +949,7 @@
         },
         {
             "name": "deposit",
-            "type": "deposit",
+            "type": "account",
             "index_type": "i64",
             "key_names": [],
             "key_types": []
