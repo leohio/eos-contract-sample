@@ -70,25 +70,11 @@ cleos get table eosio.token leohioleohio accounts
 
 ```
 cleos get table toycashcmnty mokemokecore deposit
-
-# トークンをデポジット
-cleos push action eosio.token transfer '["mokemokecore", "toycashcmnty", "0.1000 EOS", "transfer EOS for offer"]' -p mokemokecore@active
-
-cleos get table toycashcmnty mokemokecore deposit
 cleos get table toycashcmnty TOY offer
 cleos get table toycashcmnty toycashcmnty contents
 
-# 配当の分配比率を決める（デフォルトはトークン発行者が全部もらう）
-# id: 0 のトークンを持っている人は 10/16
-# id: 2 のトークンを持っている人は  4/16
-# その他のトークンを持っている人で残りの 2/16 を均等に分配
-# 今回は、トークン 0, 2 以外は発行されていない前提なので、残りはコントラクトがもらう
-cleos push action toycashcmnty setmanager '["TOY", 0, [0, 2], [10, 4], 2]' -p leohioleohio@active
-
-cleos get table toycashcmnty TOY community
-
-# オファーの提案を出す（事前のデポジットが必要）
-cleos push action toycashcmnty setoffer '["mokemokecore", "TOY", "https://www.coinershigh.com", "0.1000 EOS"]' -p mokemokecore@active
+# オファーの提案を出す（デポジットと提案のアクションを同時に行う）
+cleos push action eosio.token transfer '["mokemokecore", "toycashcmnty", "0.1000 EOS", "toycashcmnty,setoffer,TOY,https://www.geomerlin.com"]' -p mokemokecore@active
 
 cleos get table toycashcmnty TOY offer
 
@@ -102,4 +88,18 @@ cleos get table toycashcmnty toycashcmnty contents
 cleos push action toycashcmnty addpvcount '[0, 1]' -p toycashcmnty@active
 
 cleos get table toycashcmnty toycashcmnty contents
+```
+
+### Others
+
+```
+# 配当の分配比率を決める（デフォルトはトークン発行者が全部もらう）
+# id: 0 のトークンを持っている人は 10/16
+# id: 2 のトークンを持っている人は  4/16
+# その他のトークンを持っている人で残りの 2/16 を均等に分配
+# トークン 0, 2 以外は発行されていないならば、残りはコントラクトがもらう
+cleos push action toycashcmnty setmanager '["TOY", 0, [0, 2], [10, 4], 2]' -p leohioleohio@active
+
+# デポジットした EOS の引き出し
+cleos push action toycashcmnty withdraw '["leohioleohio", "0.0001 EOS", "withdraw"]' -p leohioleohio@active
 ```
