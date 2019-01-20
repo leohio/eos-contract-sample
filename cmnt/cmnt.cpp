@@ -804,7 +804,7 @@ void cmnt::acceptoffer( name manager, symbol_code sym, uint64_t offer_id ) {
     //     contents_table.erase( oldest_content );
     // }
 
-    uint32_t now = current_time();
+    uint64_t now = current_time();
 
     contents_table.emplace( manager, [&]( auto& data ) {
         data.id = contents_table.available_primary_key();
@@ -816,6 +816,8 @@ void cmnt::acceptoffer( name manager, symbol_code sym, uint64_t offer_id ) {
         data.accepted = now;
         data.active = 1;
     });
+
+    require_recipient( provider );
 
     update_pv_rate( sym, now, price );
 
