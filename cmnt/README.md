@@ -78,7 +78,7 @@ cleos get table toycashcmnty mokemokecore deposit
 cleos get table toycashcmnty TOY offer
 cleos get table toycashcmnty toycashcmnty contents
 
-# 配当の分配比率を決める
+# 配当の分配比率を決める（デフォルトはトークン発行者が全部もらう）
 # id: 0 のトークンを持っている人は 10/16
 # id: 2 のトークンを持っている人は  4/16
 # その他のトークンを持っている人で残りの 2/16 を均等に分配
@@ -100,16 +100,6 @@ cleos get table toycashcmnty toycashcmnty contents
 
 # PV 数を記録する
 cleos push action toycashcmnty addpvcount '[0, 1]' -p toycashcmnty@active
-
-cleos get table toycashcmnty toycashcmnty contents
-
-# コンテンツの配信を停止する
-cleos push action toycashcmnty stopcontents '["leohioleohio", 0]' -p leohioleohio@active
-
-cleos get table toycashcmnty toycashcmnty contents
-
-# コンテンツを削除する
-cleos push action toycashcmnty dropcontents '["leohioleohio", 0]' -p leohioleohio@active
 
 cleos get table toycashcmnty toycashcmnty contents
 ```

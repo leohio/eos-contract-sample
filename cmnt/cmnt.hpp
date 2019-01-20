@@ -27,15 +27,15 @@ class [[eosio::contract]] cmnt : public eosio::contract {
             world_pv_count_table( receiver, receiver.value ),
             pv_rate_table( receiver, receiver.value )
         {
-            auto world_data = world_table.find( receiver.value );
-            if ( world_data == world_table.end() ) {
-                world_table.emplace( get_self(), [&]( auto& data ) {
-                    data.self = get_self();
-                    data.timestamp = current_time();
-                    data.pvrate = 0;
-                    data.pvcount = 0;
-                });
-            }
+        //     auto world_data = world_table.find( receiver.value );
+        //     if ( world_data == world_table.end() ) {
+        //         world_table.emplace( get_self(), [&]( auto& data ) {
+        //             data.self = get_self();
+        //             data.timestamp = current_time();
+        //             data.pvrate = 0;
+        //             data.pvcount = 0;
+        //         });
+        //     }
         }
 
         /**
@@ -43,7 +43,7 @@ class [[eosio::contract]] cmnt : public eosio::contract {
         **/
 
         [[eosio::action]] void       create( name issuer, symbol_code sym );
-        [[eosio::action]] void      destroy( symbol_code sym );
+        // [[eosio::action]] void      destroy( symbol_code sym );
         [[eosio::action]] void        issue( name user, asset quantity, string memo );
         [[eosio::action]] void  issueunlock( name user, asset quantity, vector<capi_public_key> subkeys, string memo );
         [[eosio::action]] void transferbyid( name from, name to, symbol_code sym, uint64_t id, string memo );
@@ -67,10 +67,10 @@ class [[eosio::contract]] cmnt : public eosio::contract {
         [[eosio::action]] void  acceptoffer( name manager, symbol_code sym, uint64_t offer_id );
         [[eosio::action]] void  removeoffer( name provider, symbol_code sym, uint64_t offer_id );
         [[eosio::action]] void   addpvcount( uint64_t content_id, uint64_t pv_count );
-        [[eosio::action]] void resetpvcount( uint64_t content_id );
-        [[eosio::action]] void  stopcontent( name manager, uint64_t content_id );
-        [[eosio::action]] void startcontent( name manager, uint64_t content_id );
-        [[eosio::action]] void  dropcontent( name manager, uint64_t content_id );
+        // [[eosio::action]] void resetpvcount( uint64_t content_id );
+        // [[eosio::action]] void  stopcontent( name manager, uint64_t content_id );
+        // [[eosio::action]] void startcontent( name manager, uint64_t content_id );
+        // [[eosio::action]] void  dropcontent( name manager, uint64_t content_id );
         [[eosio::action]] void      receive();
 
         /**
@@ -85,7 +85,7 @@ class [[eosio::contract]] cmnt : public eosio::contract {
 
         struct [[eosio::table]] world {
             name self;
-            uint32_t timestamp; // latest update time
+            uint64_t timestamp; // latest update time
             float_t pvrate; // latest pv rate
             uint64_t pvcount; // world pv count
 
@@ -184,7 +184,7 @@ class [[eosio::contract]] cmnt : public eosio::contract {
         };
 
         struct [[eosio::table]] pvcount {
-            uint32_t timestamp;
+            uint64_t timestamp;
             uint64_t count;
 
             uint64_t primary_key() const { return timestamp; }
@@ -192,7 +192,7 @@ class [[eosio::contract]] cmnt : public eosio::contract {
         };
 
         struct [[eosio::table]] pvrate {
-            uint32_t timestamp;
+            uint64_t timestamp;
             float_t rate;
 
             uint64_t primary_key() const { return timestamp; }
@@ -266,7 +266,7 @@ class [[eosio::contract]] cmnt : public eosio::contract {
         uint64_t mint_unlock_token( name user, symbol_code sym, capi_public_key subkey, name ram_payer );
         void add_sell_order( name owner, symbol_code sym, uint64_t token_id, asset price );
         void transfer_eos( name to, asset value, string memo );
-        void update_pv_rate( symbol_code sym, uint32_t timestamp, asset new_offer_price );
+        void update_pv_rate( symbol_code sym, uint64_t timestamp, asset new_offer_price );
         void update_minimum_price( symbol_code sym );
         void increment_member( name user, symbol_code sym );
         void decrement_member( name user, symbol_code sym );

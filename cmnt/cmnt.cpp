@@ -50,27 +50,27 @@ void cmnt::create( name issuer, symbol_code sym ) {
     });
 }
 
-void cmnt::destroy( symbol_code sym ) {
-    require_auth( get_self() ); // only destroy token by contract account
-
-    /// Valid symbol
-    eosio_assert( sym.is_valid(), "invalid symbol name" );
-
-    /// Check if currency with symbol already exists
-    auto currency_data = currency_table.find( sym.raw() );
-    eosio_assert( currency_data != currency_table.end(), "token with symbol does not exists" );
-    eosio_assert( currency_data->supply == asset{ 0, symbol(sym, 0) }, "who has this token exists" );
-
-    /// Delete currency
-    currency_table.erase( currency_data );
-
-    /// Delete community
-    community_index community_table( get_self(), sym.raw() );
-    auto it = community_table.begin();
-    for (; it != community_table.end();) {
-        community_table.erase( it++ );
-    }
-}
+// void cmnt::destroy( symbol_code sym ) {
+//     require_auth( get_self() ); // only destroy token by contract account
+//
+//     /// Valid symbol
+//     eosio_assert( sym.is_valid(), "invalid symbol name" );
+//
+//     /// Check if currency with symbol already exists
+//     auto currency_data = currency_table.find( sym.raw() );
+//     eosio_assert( currency_data != currency_table.end(), "token with symbol does not exists" );
+//     eosio_assert( currency_data->supply == asset{ 0, symbol(sym, 0) }, "who has this token exists" );
+//
+//     /// Delete currency
+//     currency_table.erase( currency_data );
+//
+//     /// Delete community
+//     community_index community_table( get_self(), sym.raw() );
+//     auto it = community_table.begin();
+//     for (; it != community_table.end();) {
+//         community_table.erase( it++ );
+//     }
+// }
 
 /// subkey を登録しないでトークン発行
 uint64_t cmnt::mint_token( name user, symbol_code sym, name ram_payer ) {
@@ -881,7 +881,7 @@ void cmnt::addpvcount( uint64_t contents_id, uint64_t pv_count ) {
     /// すでに指定した uri に関する pv のデータがあることを確認
     auto contents_data = contents_table.find( contents_id );
     eosio_assert( contents_data != contents_table.end(), "this contents is not exist in the contents table" );
-    eosio_assert( contents_data->active != 0, "this contents is not active" );
+    // eosio_assert( contents_data->active != 0, "this contents is not active" );
 
     /// get block timestamp
     uint64_t now = current_time();
@@ -906,7 +906,8 @@ void cmnt::addpvcount( uint64_t contents_id, uint64_t pv_count ) {
     });
 
     /// add community pv count
-    cmnty_pv_count_index cmnty_pv_count_table( get_self(), contents_id );
+    symbol_code sym = contents_data->sym;
+    cmnty_pv_count_index cmnty_pv_count_table( get_self(), sym.raw() );
 
     auto cmnty_pv_count_data = cmnty_pv_count_table.find( now );
     if ( cmnty_pv_count_data == cmnty_pv_count_table.end() ) {
@@ -920,7 +921,6 @@ void cmnt::addpvcount( uint64_t contents_id, uint64_t pv_count ) {
         });
     }
 
-    symbol_code sym = contents_data->sym;
     auto currency_data = currency_table.find( sym.raw() );
     eosio_assert( currency_data != currency_table.end(), "this currency does not exist" );
 
@@ -948,49 +948,51 @@ void cmnt::addpvcount( uint64_t contents_id, uint64_t pv_count ) {
     });
 }
 
-void cmnt::resetpvcount( uint64_t contents_id ) {
-    /// コントラクトアカウントのみが呼び出せる
-    require_auth( get_self() );
+// void cmnt::resetpvcount( uint64_t contents_id ) {
+//     /// コントラクトアカウントのみが呼び出せる
+//     require_auth( get_self() );
+//
+//     /// すでに指定した uri に関する pv のデータがあることを確認
+//     auto contents_data = contents_table.find( contents_id );
+//     eosio_assert( contents_data != contents_table.end(), "this contents is not exist in the contents table" );
+//
+//     contents_table.modify( contents_data, get_self(), [&]( auto& data ) {
+//         data.pvcount = 0;
+//     });
+//
+//     pv_count_index pv_count_table( get_self(), contents_id );
+//     auto data = pv_count_table.begin();
+//     while ( data != pv_count_table.end() ) {
+//         pv_count_table.erase( data );
+//         pv_rate_index pv_rate_table( get_self(), contents_id );
+//         data = pv_count_table.begin();
+//     }
+// }
 
-    /// すでに指定した uri に関する pv のデータがあることを確認
-    auto contents_data = contents_table.find( contents_id );
-    eosio_assert( contents_data != contents_table.end(), "this contents is not exist in the contents table" );
+// void cmnt::stopcontent( name manager, uint64_t contents_id ) {
+//     require_auth( manager );
+//
+//     auto contents_data = contents_table.find( contents_id );
+//     contents_table.modify( contents_data, manager, [&]( auto& data ) {
+//         data.active = 0;
+//     });
+// }
 
-    contents_table.modify( contents_data, get_self(), [&]( auto& data ) {
-        data.pvcount = 0;
-    });
+// void cmnt::startcontent( name manager, uint64_t contents_id ) {
+//     require_auth( manager );
+//
+//     auto contents_data = contents_table.find( contents_id );
+//     contents_table.modify( contents_data, manager, [&]( auto& data ) {
+//         data.active = 1;
+//     });
+// }
 
-    // pv_count_index pv_count_table( get_self(), contents_id );
-    // auto it = pv_count_table.begin();
-    // for (; it != pv_count_table.end(); ++it ) {
-    //     pv_count_table.erase( it );
-    // }
-}
-
-void cmnt::stopcontent( name manager, uint64_t contents_id ) {
-    require_auth( manager );
-
-    auto contents_data = contents_table.find( contents_id );
-    contents_table.modify( contents_data, manager, [&]( auto& data ) {
-        data.active = 0;
-    });
-}
-
-void cmnt::startcontent( name manager, uint64_t contents_id ) {
-    require_auth( manager );
-
-    auto contents_data = contents_table.find( contents_id );
-    contents_table.modify( contents_data, manager, [&]( auto& data ) {
-        data.active = 1;
-    });
-}
-
-void cmnt::dropcontent( name manager, uint64_t contents_id ) {
-    require_auth( manager );
-
-    auto contents_data = contents_table.find( contents_id );
-    contents_table.erase( contents_data );
-}
+// void cmnt::dropcontent( name manager, uint64_t contents_id ) {
+//     require_auth( manager );
+//
+//     auto contents_data = contents_table.find( contents_id );
+//     contents_table.erase( contents_data );
+// }
 
 uint64_t cmnt::get_cmnty_pv_count( symbol_code sym ) {
     cmnty_pv_count_index cmnty_pv_count_table( get_self(), sym.raw() );
@@ -1017,7 +1019,7 @@ uint64_t cmnt::get_world_pv_count() {
 }
 
 
-void cmnt::update_pv_rate( symbol_code sym, uint32_t timestamp, asset new_offer_price ) {
+void cmnt::update_pv_rate( symbol_code sym, uint64_t timestamp, asset new_offer_price ) {
     eosio_assert( new_offer_price.symbol == symbol("EOS", 4), "symbol of offer price must be EOS" );
 
     eosio_assert( timestamp != 0, "invalid timestamp" );
@@ -1344,7 +1346,7 @@ extern "C" {
             switch( action ) {
                EOSIO_DISPATCH_HELPER( cmnt,
                    (create)
-                   (destroy)
+                   // (destroy)
                    (issue)
                    (issueunlock)
                    (transferbyid)
@@ -1366,11 +1368,11 @@ extern "C" {
                    (setoffer)
                    (acceptoffer)
                    (removeoffer)
-                   (resetpvcount)
+                   // (resetpvcount)
                    (addpvcount)
-                   (stopcontent)
-                   (startcontent)
-                   (dropcontent)
+                   // (stopcontent)
+                   // (startcontent)
+                   // (dropcontent)
                );
             }
         }

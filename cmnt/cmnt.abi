@@ -1,5 +1,5 @@
 {
-    "____comment": "This file was generated with eosio-abigen. DO NOT EDIT Sun Jan 20 16:24:55 2019",
+    "____comment": "This file was generated with eosio-abigen. DO NOT EDIT Sun Jan 20 18:33:13 2019",
     "version": "eosio::abi/1.0",
     "structs": [
         {
@@ -271,30 +271,6 @@
             ]
         },
         {
-            "name": "destroy",
-            "base": "",
-            "fields": [
-                {
-                    "name": "sym",
-                    "type": "symbol_code"
-                }
-            ]
-        },
-        {
-            "name": "dropcontent",
-            "base": "",
-            "fields": [
-                {
-                    "name": "manager",
-                    "type": "name"
-                },
-                {
-                    "name": "content_id",
-                    "type": "uint64"
-                }
-            ]
-        },
-        {
             "name": "issue",
             "base": "",
             "fields": [
@@ -398,7 +374,7 @@
             "fields": [
                 {
                     "name": "timestamp",
-                    "type": "uint32"
+                    "type": "uint64"
                 },
                 {
                     "name": "count",
@@ -412,7 +388,7 @@
             "fields": [
                 {
                     "name": "timestamp",
-                    "type": "uint32"
+                    "type": "uint64"
                 },
                 {
                     "name": "rate",
@@ -461,16 +437,6 @@
                 },
                 {
                     "name": "offer_id",
-                    "type": "uint64"
-                }
-            ]
-        },
-        {
-            "name": "resetpvcount",
-            "base": "",
-            "fields": [
-                {
-                    "name": "content_id",
                     "type": "uint64"
                 }
             ]
@@ -590,34 +556,6 @@
             ]
         },
         {
-            "name": "startcontent",
-            "base": "",
-            "fields": [
-                {
-                    "name": "manager",
-                    "type": "name"
-                },
-                {
-                    "name": "content_id",
-                    "type": "uint64"
-                }
-            ]
-        },
-        {
-            "name": "stopcontent",
-            "base": "",
-            "fields": [
-                {
-                    "name": "manager",
-                    "type": "name"
-                },
-                {
-                    "name": "content_id",
-                    "type": "uint64"
-                }
-            ]
-        },
-        {
             "name": "token",
             "base": "",
             "fields": [
@@ -715,7 +653,7 @@
                 },
                 {
                     "name": "timestamp",
-                    "type": "uint32"
+                    "type": "uint64"
                 },
                 {
                     "name": "pvrate",
@@ -786,16 +724,6 @@
             "ricardian_contract": ""
         },
         {
-            "name": "destroy",
-            "type": "destroy",
-            "ricardian_contract": ""
-        },
-        {
-            "name": "dropcontent",
-            "type": "dropcontent",
-            "ricardian_contract": ""
-        },
-        {
             "name": "issue",
             "type": "issue",
             "ricardian_contract": ""
@@ -826,11 +754,6 @@
             "ricardian_contract": ""
         },
         {
-            "name": "resetpvcount",
-            "type": "resetpvcount",
-            "ricardian_contract": ""
-        },
-        {
             "name": "sell",
             "type": "sell",
             "ricardian_contract": ""
@@ -853,16 +776,6 @@
         {
             "name": "setoffer",
             "type": "setoffer",
-            "ricardian_contract": ""
-        },
-        {
-            "name": "startcontent",
-            "type": "startcontent",
-            "ricardian_contract": ""
-        },
-        {
-            "name": "stopcontent",
-            "type": "stopcontent",
             "ricardian_contract": ""
         },
         {
