@@ -72,48 +72,6 @@ void cmnt::destroy( symbol_code sym ) {
     }
 }
 
-/// トークンを増やす前に確認する
-void cmnt::increment_member( name user, symbol_code sym ) {
-    token_index token_table( get_self(), sym.raw() );
-    auto it = token_table.begin();
-    bool found = false;
-    for (; it != token_table.end(); ++it ) {
-        if ( it->owner == user ) {
-            found = true;
-            break;
-        }
-    }
-
-    if ( !found ) {
-        auto currency_data = currency_table.find( sym.raw() );
-        eosio_assert( currency_data != currency_table.end(), "token with symbol does not exist. create token before issue" );
-        currency_table.modify( currency_data, get_self(), [&]( auto& data ) {
-            data.numofmember += 1;
-        });
-    }
-}
-
-/// トークンを減らした後に確認する
-void cmnt::decrement_member( name user, symbol_code sym ) {
-    token_index token_table( get_self(), sym.raw() );
-    auto it = token_table.begin();
-    bool found = false;
-    for (; it != token_table.end(); ++it ) {
-        if ( it->owner == user ) {
-            found = true;
-            break;
-        }
-    }
-
-    if ( !found ) {
-        auto currency_data = currency_table.find( sym.raw() );
-        eosio_assert( currency_data != currency_table.end(), "token with symbol does not exist. create token before issue" );
-        currency_table.modify( currency_data, get_self(), [&]( auto& data ) {
-            data.numofmember -= 1;
-        });
-    }
-}
-
 /// subkey を登録しないでトークン発行
 uint64_t cmnt::mint_token( name user, symbol_code sym, name ram_payer ) {
     increment_member( user, sym );
@@ -534,7 +492,7 @@ void cmnt::buyandunlock( name user, symbol_code sym, uint64_t token_id, capi_pub
     refleshkey( user, sym, token_id, subkey );
 }
 
-// あらかじめ user にこのコントラクトの eosio.code permission をつけておかないと実行できない。
+/// あらかじめ user にこのコントラクトの eosio.code permission をつけておかないと実行できない。
 void cmnt::sendandbuy( name user, symbol_code sym, uint64_t token_id, capi_public_key subkey, string memo ) {
     require_auth( user );
     eosio_assert( user != get_self(), "does not buy token by contract account" );
@@ -1239,6 +1197,48 @@ void cmnt::sub_deposit( name owner, asset quantity ) {
     }
 }
 
+/// トークンを増やす前に確認する
+void cmnt::increment_member( name user, symbol_code sym ) {
+    token_index token_table( get_self(), sym.raw() );
+    auto it = token_table.begin();
+    bool found = false;
+    for (; it != token_table.end(); ++it ) {
+        if ( it->owner == user ) {
+            found = true;
+            break;
+        }
+    }
+
+    if ( !found ) {
+        auto currency_data = currency_table.find( sym.raw() );
+        eosio_assert( currency_data != currency_table.end(), "token with symbol does not exist. create token before issue" );
+        currency_table.modify( currency_data, get_self(), [&]( auto& data ) {
+            data.numofmember += 1;
+        });
+    }
+}
+
+/// トークンを減らした後に確認する
+void cmnt::decrement_member( name user, symbol_code sym ) {
+    token_index token_table( get_self(), sym.raw() );
+    auto it = token_table.begin();
+    bool found = false;
+    for (; it != token_table.end(); ++it ) {
+        if ( it->owner == user ) {
+            found = true;
+            break;
+        }
+    }
+
+    if ( !found ) {
+        auto currency_data = currency_table.find( sym.raw() );
+        eosio_assert( currency_data != currency_table.end(), "token with symbol does not exist. create token before issue" );
+        currency_table.modify( currency_data, get_self(), [&]( auto& data ) {
+            data.numofmember -= 1;
+        });
+    }
+}
+
 uint64_t cmnt::find_own_token( name owner, symbol_code sym ) {
     eosio_assert( is_account( owner ), "invalid account" );
 
@@ -1364,6 +1364,7 @@ extern "C" {
                    (setoffer)
                    (acceptoffer)
                    (removeoffer)
+                   (resetpvcount)
                    (addpvcount)
                    (stopcontent)
                    (startcontent)

@@ -1,5 +1,5 @@
 {
-    "____comment": "This file was generated with eosio-abigen. DO NOT EDIT Sun Jan 20 03:53:10 2019",
+    "____comment": "This file was generated with eosio-abigen. DO NOT EDIT Sun Jan 20 13:38:06 2019",
     "version": "eosio::abi/1.0",
     "structs": [
         {
@@ -345,24 +345,6 @@
                 {
                     "name": "subkeys",
                     "type": "public_key[]"
-                },
-                {
-                    "name": "memo",
-                    "type": "string"
-                }
-            ]
-        },
-        {
-            "name": "obtain",
-            "base": "",
-            "fields": [
-                {
-                    "name": "user",
-                    "type": "name"
-                },
-                {
-                    "name": "sym",
-                    "type": "symbol_code"
                 },
                 {
                     "name": "memo",
@@ -826,11 +808,6 @@
         {
             "name": "issueunlock",
             "type": "issueunlock",
-            "ricardian_contract": ""
-        },
-        {
-            "name": "obtain",
-            "type": "obtain",
             "ricardian_contract": ""
         },
         {

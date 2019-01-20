@@ -46,7 +46,6 @@ class [[eosio::contract]] cmnt : public eosio::contract {
         [[eosio::action]] void      destroy( symbol_code sym );
         [[eosio::action]] void        issue( name user, asset quantity, string memo );
         [[eosio::action]] void  issueunlock( name user, asset quantity, vector<capi_public_key> subkeys, string memo );
-        [[eosio::action]] void       obtain( name user, symbol_code sym, string memo );
         [[eosio::action]] void transferbyid( name from, name to, symbol_code sym, uint64_t id, string memo );
 	    [[eosio::action]] void     transfer( name from, name to, symbol_code sym, string memo );
         [[eosio::action]] void     burnbyid( name owner, symbol_code sym, uint64_t token_id );

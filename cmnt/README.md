@@ -58,7 +58,7 @@ cleos push action toycashcmnty sellbyid '["leohioleohio", "TOY", 2, "0.1000 EOS"
 cleos get table toycashcmnty TOY token
 cleos get table toycashcmnty TOY sellorder
 
-# トークンを購入
+# トークンを購入（デポジットと購入のアクションを同時に行う）
 cleos push action eosio.token transfer '["mokemokecore", "toycashcmnty", "0.1000 EOS", "toycashcmnty,buy,TOY,2"]' -p mokemokecore@active
 
 cleos get table toycashcmnty TOY token
@@ -87,7 +87,7 @@ cleos push action toycashcmnty setmanager '["TOY", 0, [0, 2], [10, 4], 2]' -p le
 
 cleos get table toycashcmnty TOY community
 
-# オファーの提案を出す
+# オファーの提案を出す（事前のデポジットが必要）
 cleos push action toycashcmnty setoffer '["mokemokecore", "TOY", "https://www.coinershigh.com", "0.1000 EOS"]' -p mokemokecore@active
 
 cleos get table toycashcmnty TOY offer
