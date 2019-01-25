@@ -1,7 +1,6 @@
 #include <eosiolib/eosio.hpp>
-#include <eosiolib/asset.hpp> // asset, symbol
-#include <eosiolib/crypto.h> // assert_recover_key
-#include <eosiolib/action.hpp> // inline action
+#include <eosiolib/asset.hpp> /* asset, symbol */
+#include <eosiolib/action.hpp> /* inline action */
 
 using namespace eosio;
 using std::string;
