@@ -1,5 +1,5 @@
 {
-    "____comment": "This file was generated with eosio-abigen. DO NOT EDIT Sun Jan 20 18:33:13 2019",
+    "____comment": "This file was generated with eosio-abigen. DO NOT EDIT Fri Jan 25 20:06:53 2019",
     "version": "eosio::abi/1.0",
     "structs": [
         {
@@ -99,7 +99,7 @@
             ]
         },
         {
-            "name": "buyandunlock",
+            "name": "buyorder",
             "base": "",
             "fields": [
                 {
@@ -111,21 +111,31 @@
                     "type": "symbol_code"
                 },
                 {
-                    "name": "token_id",
+                    "name": "price",
+                    "type": "asset"
+                }
+            ]
+        },
+        {
+            "name": "cancelbobyid",
+            "base": "",
+            "fields": [
+                {
+                    "name": "user",
+                    "type": "name"
+                },
+                {
+                    "name": "sym",
+                    "type": "symbol_code"
+                },
+                {
+                    "name": "buy_order_id",
                     "type": "uint64"
-                },
-                {
-                    "name": "subkey",
-                    "type": "public_key"
-                },
-                {
-                    "name": "memo",
-                    "type": "string"
                 }
             ]
         },
         {
-            "name": "cancel",
+            "name": "cancelso",
             "base": "",
             "fields": [
                 {
@@ -139,7 +149,7 @@
             ]
         },
         {
-            "name": "cancelburn",
+            "name": "cancelsoburn",
             "base": "",
             "fields": [
                 {
@@ -153,7 +163,7 @@
             ]
         },
         {
-            "name": "cancelbyid",
+            "name": "cancelsobyid",
             "base": "",
             "fields": [
                 {
@@ -307,28 +317,6 @@
             ]
         },
         {
-            "name": "issueunlock",
-            "base": "",
-            "fields": [
-                {
-                    "name": "user",
-                    "type": "name"
-                },
-                {
-                    "name": "quantity",
-                    "type": "asset"
-                },
-                {
-                    "name": "subkeys",
-                    "type": "public_key[]"
-                },
-                {
-                    "name": "memo",
-                    "type": "string"
-                }
-            ]
-        },
-        {
             "name": "offer",
             "base": "",
             "fields": [
@@ -363,7 +351,7 @@
                     "type": "asset"
                 },
                 {
-                    "name": "owner",
+                    "name": "user",
                     "type": "name"
                 }
             ]
@@ -442,7 +430,34 @@
             ]
         },
         {
-            "name": "sell",
+            "name": "resetpvrate",
+            "base": "",
+            "fields": []
+        },
+        {
+            "name": "sellobyid",
+            "base": "",
+            "fields": [
+                {
+                    "name": "owner",
+                    "type": "name"
+                },
+                {
+                    "name": "sym",
+                    "type": "symbol_code"
+                },
+                {
+                    "name": "token_id",
+                    "type": "uint64"
+                },
+                {
+                    "name": "price",
+                    "type": "asset"
+                }
+            ]
+        },
+        {
+            "name": "sellorder",
             "base": "",
             "fields": [
                 {
@@ -460,7 +475,7 @@
             ]
         },
         {
-            "name": "sellbyid",
+            "name": "selltoorder",
             "base": "",
             "fields": [
                 {
@@ -476,30 +491,8 @@
                     "type": "uint64"
                 },
                 {
-                    "name": "price",
-                    "type": "asset"
-                }
-            ]
-        },
-        {
-            "name": "sendandbuy",
-            "base": "",
-            "fields": [
-                {
-                    "name": "user",
-                    "type": "name"
-                },
-                {
-                    "name": "sym",
-                    "type": "symbol_code"
-                },
-                {
-                    "name": "token_id",
+                    "name": "buy_order_id",
                     "type": "uint64"
-                },
-                {
-                    "name": "subkey",
-                    "type": "public_key"
                 },
                 {
                     "name": "memo",
@@ -616,7 +609,7 @@
                     "type": "symbol_code"
                 },
                 {
-                    "name": "id",
+                    "name": "token_id",
                     "type": "uint64"
                 },
                 {
@@ -699,23 +692,28 @@
             "ricardian_contract": ""
         },
         {
-            "name": "buyandunlock",
-            "type": "buyandunlock",
+            "name": "buyorder",
+            "type": "buyorder",
             "ricardian_contract": ""
         },
         {
-            "name": "cancel",
-            "type": "cancel",
+            "name": "cancelbobyid",
+            "type": "cancelbobyid",
             "ricardian_contract": ""
         },
         {
-            "name": "cancelburn",
-            "type": "cancelburn",
+            "name": "cancelso",
+            "type": "cancelso",
             "ricardian_contract": ""
         },
         {
-            "name": "cancelbyid",
-            "type": "cancelbyid",
+            "name": "cancelsoburn",
+            "type": "cancelsoburn",
+            "ricardian_contract": ""
+        },
+        {
+            "name": "cancelsobyid",
+            "type": "cancelsobyid",
             "ricardian_contract": ""
         },
         {
@@ -734,11 +732,6 @@
             "ricardian_contract": ""
         },
         {
-            "name": "issueunlock",
-            "type": "issueunlock",
-            "ricardian_contract": ""
-        },
-        {
             "name": "receive",
             "type": "receive",
             "ricardian_contract": ""
@@ -754,18 +747,23 @@
             "ricardian_contract": ""
         },
         {
-            "name": "sell",
-            "type": "sell",
+            "name": "resetpvrate",
+            "type": "resetpvrate",
             "ricardian_contract": ""
         },
         {
-            "name": "sellbyid",
-            "type": "sellbyid",
+            "name": "sellobyid",
+            "type": "sellobyid",
             "ricardian_contract": ""
         },
         {
-            "name": "sendandbuy",
-            "type": "sendandbuy",
+            "name": "sellorder",
+            "type": "sellorder",
+            "ricardian_contract": ""
+        },
+        {
+            "name": "selltoorder",
+            "type": "selltoorder",
             "ricardian_contract": ""
         },
         {
@@ -798,6 +796,13 @@
         {
             "name": "accounts",
             "type": "account",
+            "index_type": "i64",
+            "key_names": [],
+            "key_types": []
+        },
+        {
+            "name": "buyorder",
+            "type": "order",
             "index_type": "i64",
             "key_names": [],
             "key_types": []

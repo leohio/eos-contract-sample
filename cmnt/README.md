@@ -45,18 +45,20 @@ cleos push action toycashcmnty burnbyid '["leohioleohio", "TOY", 1]' -p leohiole
 cleos get table toycashcmnty TOY token
 ```
 
-### DEX
+### Sell Order
 
 ```
 cleos get table toycashcmnty TOY token
 cleos get table toycashcmnty TOY sellorder
+cleos get table eosio.token mokemokecore accounts
 cleos get table eosio.token leohioleohio accounts
 
 # トークンを売りに出す
-cleos push action toycashcmnty sellbyid '["leohioleohio", "TOY", 2, "0.1000 EOS", "serve sell order"]' -p leohioleohio@active
+cleos push action toycashcmnty sellobyid '["leohioleohio", "TOY", 2, "0.1000 EOS", "serve sell order"]' -p leohioleohio@active
 
 cleos get table toycashcmnty TOY token
 cleos get table toycashcmnty TOY sellorder
+cleos get table eosio.token mokemokecore accounts
 
 # トークンを購入（デポジットと購入のアクションを同時に行う）
 cleos push action eosio.token transfer '["mokemokecore", "toycashcmnty", "0.1000 EOS", "toycashcmnty,buy,TOY,2"]' -p mokemokecore@active
@@ -64,6 +66,29 @@ cleos push action eosio.token transfer '["mokemokecore", "toycashcmnty", "0.1000
 cleos get table toycashcmnty TOY token
 cleos get table toycashcmnty TOY sellorder
 cleos get table eosio.token leohioleohio accounts
+```
+
+### Buy Order
+
+```
+cleos get table toycashcmnty TOY token
+cleos get table toycashcmnty TOY buyorder
+cleos get table eosio.token mokemokecore accounts
+cleos get table eosio.token leohioleohio accounts
+
+# トークンを注文する（デポジットと注文のアクションを同時に行う）
+cleos push action eosio.token transfer '["leohioleohio", "toycashcmnty", "0.1000 EOS", "toycashcmnty,buyorder,TOY"]' -p leohioleohio@active
+
+cleos get table toycashcmnty TOY token
+cleos get table toycashcmnty TOY buyorder
+cleos get table eosio.token leohioleohio accounts
+
+# トークンを売る
+cleos push action toycashcmnty selltoorder '["mokemokecore", "TOY", 2, 0, "serve sell order"]' -p mokemokecore@active
+
+cleos get table toycashcmnty TOY token
+cleos get table toycashcmnty TOY buyorder
+cleos get table eosio.token mokemokecore accounts
 ```
 
 ### Offer & Contents
