@@ -34,7 +34,7 @@ class [[eosio::contract]] cmnt : public eosio::contract {
                     data.self = get_self();
                     data.timestamp = now;
                     data.pvrate = 0;
-                    data.pvcount = 1;
+                    data.pvcount = 0;
                 });
             }
         }
@@ -53,7 +53,7 @@ class [[eosio::contract]] cmnt : public eosio::contract {
         [[eosio::action]] void         burn( name owner, asset quantity );
         [[eosio::action]] void   refleshkey( name owner, symbol_code sym, uint64_t token_id, capi_public_key subkey );
         // [[eosio::action]] void         lock( name claimer, uint64_t token_id, string data, capi_signature sig );
-        [[eosio::action]] void    sellobyid( name seller, symbol_code sym, uint64_t token_id, asset price );
+        [[eosio::action]] void addsellobyid( name seller, symbol_code sym, uint64_t token_id, asset price );
         [[eosio::action]] void addsellorder( name seller, asset quantity, asset price );
         [[eosio::action]] void issueandsell( asset quantity, asset price, string memo );
         [[eosio::action]] void buyfromorder( name buyer, symbol_code sym, uint64_t token_id, string memo );
@@ -75,8 +75,9 @@ class [[eosio::contract]] cmnt : public eosio::contract {
         // [[eosio::action]] void  stopcontent( name manager, uint64_t content_id );
         // [[eosio::action]] void startcontent( name manager, uint64_t content_id );
         // [[eosio::action]] void  dropcontent( name manager, uint64_t content_id );
-        [[eosio::action]] void  resetpvrate();
+        // [[eosio::action]] void  resetpvrate();
         // [[eosio::action]] void    initworld();
+        // [[eosio::action]] void deletepvrate( uint64_t timestamp );
         [[eosio::action]] void      receive();
 
         /**
@@ -294,10 +295,15 @@ class [[eosio::contract]] cmnt : public eosio::contract {
         void _sub_balance( name owner, asset quantity );
         void _add_supply( asset quantity );
         void _sub_supply( asset quantity );
-        void _add_deopsit( name owner, asset quantity );
-        void _sub_deopsit( name owner, asset quantity );
+        void _add_deposit( name owner, asset quantity );
+        void _sub_deposit( name owner, asset quantity );
         void _increment_member( name user, symbol_code sym );
         void _decrement_member( name user, symbol_code sym );
+
+        /// Assertion
+
+        void assert_positive_quantity_of_nft( asset quantity );
+        void assert_non_negative_price( asset price );
 
         /// Search Table
 

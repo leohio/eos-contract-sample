@@ -1,5 +1,5 @@
 {
-    "____comment": "This file was generated with eosio-abigen. DO NOT EDIT Sat Jan 26 14:24:57 2019",
+    "____comment": "This file was generated with eosio-abigen. DO NOT EDIT Sat Jan 26 19:32:47 2019",
     "version": "eosio::abi/1.0",
     "structs": [
         {
@@ -59,6 +59,28 @@
                 {
                     "name": "pv_count",
                     "type": "uint64"
+                }
+            ]
+        },
+        {
+            "name": "addsellobyid",
+            "base": "",
+            "fields": [
+                {
+                    "name": "seller",
+                    "type": "name"
+                },
+                {
+                    "name": "sym",
+                    "type": "symbol_code"
+                },
+                {
+                    "name": "token_id",
+                    "type": "uint64"
+                },
+                {
+                    "name": "price",
+                    "type": "asset"
                 }
             ]
         },
@@ -448,33 +470,6 @@
             ]
         },
         {
-            "name": "resetpvrate",
-            "base": "",
-            "fields": []
-        },
-        {
-            "name": "sellobyid",
-            "base": "",
-            "fields": [
-                {
-                    "name": "seller",
-                    "type": "name"
-                },
-                {
-                    "name": "sym",
-                    "type": "symbol_code"
-                },
-                {
-                    "name": "token_id",
-                    "type": "uint64"
-                },
-                {
-                    "name": "price",
-                    "type": "asset"
-                }
-            ]
-        },
-        {
             "name": "selltoorder",
             "base": "",
             "fields": [
@@ -682,6 +677,11 @@
             "ricardian_contract": ""
         },
         {
+            "name": "addsellobyid",
+            "type": "addsellobyid",
+            "ricardian_contract": ""
+        },
+        {
             "name": "addsellorder",
             "type": "addsellorder",
             "ricardian_contract": ""
@@ -749,16 +749,6 @@
         {
             "name": "removeoffer",
             "type": "removeoffer",
-            "ricardian_contract": ""
-        },
-        {
-            "name": "resetpvrate",
-            "type": "resetpvrate",
-            "ricardian_contract": ""
-        },
-        {
-            "name": "sellobyid",
-            "type": "sellobyid",
             "ricardian_contract": ""
         },
         {
