@@ -73,7 +73,7 @@ void cmnt::issue( name user, asset quantity, string memo ) {
     uint64_t i = 0;
     uint64_t token_id;
     for (; i != quantity.amount; ++i ) {
-        token_id = _mint_token( user, sym );
+        token_id = _issue_token( user, sym );
     }
 }
 
@@ -106,7 +106,7 @@ void cmnt::issue( name user, asset quantity, string memo ) {
 //
 //     uint64_t token_id;
 //     for ( auto const& subkey: subkeys ) {
-//         token_id = _mint_token( user, sym );
+//         token_id = _issue_token( user, sym );
 //         _set_subkey( user, sym, token_id, subkey );
 //     }
 // }
@@ -133,31 +133,9 @@ void cmnt::transferbyid( name from, name to, symbol_code sym, uint64_t token_id,
 }
 
 void cmnt::transfer( name from, name to, symbol_code sym, string memo ) {
-    /// Ensure authorized to send from account
-    eosio_assert( from != to, "cannot transfer to self" );
-    require_auth( from );
-    eosio_assert( from != get_self(), "do not transfer token from contract account" );
-    eosio_assert( to != get_self(), "do not transfer token to contract account" );
+    uint64_t token_id = find_own_token( from, sym ); /// 所持トークンを1つ探す
 
-    /// Ensure 'to' account exists
-    eosio_assert( is_account( to ), "to account does not exist");
-
-    /// Check memo size
-    eosio_assert( memo.size() <= 256, "memo has more than 256 bytes" );
-
-    /// 所持トークンを1つ探す
-    uint64_t token_id = find_own_token( from, sym );
-
-	/// Notify both recipients
-    require_recipient( from );
-	require_recipient( to );
-
-    action(
-        permission_level{ from, name("active") },
-        get_self(),
-        name("transferbyid"),
-        std::make_tuple( from, to, token_id, memo )
-    ).send();
+    transferbyid( from, to, sym, token_id, memo );
 }
 
 void cmnt::burnbyid( name owner, symbol_code sym, uint64_t token_id ) {
@@ -168,22 +146,9 @@ void cmnt::burnbyid( name owner, symbol_code sym, uint64_t token_id ) {
     token_index token_table( get_self(), sym.raw() );
     auto token_data = token_table.find( token_id );
     eosio_assert( token_data != token_table.end(), "token with id does not exist" );
-    eosio_assert( token_data->owner == owner, "token not owned by account" );
+    eosio_assert( token_data->owner == owner, "you do not own the token" );
 
-    community_index community_table( get_self(), sym.raw() );
-    auto community_data = community_table.find( token_id );
-    eosio_assert( community_data == community_table.end(), "manager should not delete my token" );
-
-	/// Remove token from tokens table
-    token_table.erase( token_data );
-
-    decrement_member( owner, sym );
-
-    /// Lower balance from owner
-    sub_balance( owner, asset{ 1, symbol(sym, 0) } );
-
-    /// Lower supply from currency
-    sub_supply( asset{ 1, symbol(sym, 0) } );
+	_burn_token( owner, sym, token_id );
 }
 
 void cmnt::burn( name owner, asset quantity ) {
@@ -237,14 +202,14 @@ void cmnt::refleshkey( name owner, symbol_code sym, uint64_t token_id, capi_publ
 //    _lock_token( sym, token_id );
 // }
 
-void cmnt::sellobyid( name owner, symbol_code sym, uint64_t token_id, asset price ) {
-    require_auth( owner );
-    eosio_assert( owner != get_self(), "does not serve bid order by contract account" );
+void cmnt::sellobyid( name seller, symbol_code sym, uint64_t token_id, asset price ) {
+    require_auth( seller );
+    eosio_assert( seller != get_self(), "does not serve bid order by contract account" );
 
     token_index token_table( get_self(), sym.raw() );
     auto target_token = token_table.find( token_id );
     eosio_assert( target_token != token_table.end(), "token with id does not exist" );
-    eosio_assert( target_token->owner == owner, "token not owned by account" );
+    eosio_assert( target_token->owner == seller, "token not owned by account" );
 
     /// price に指定した asset が EOS であることの確認
     eosio_assert( price.symbol == symbol("EOS", 4), "allow only EOS as price" );
@@ -253,10 +218,10 @@ void cmnt::sellobyid( name owner, symbol_code sym, uint64_t token_id, asset pric
     eosio_assert( currency_data != currency_table.end(), "token with symbol do not exists" );
     // eosio_assert( price >= currency_data->minimumprice, "price is lower than minimum selling price" );
 
-    _add_sell_order( owner, sym, token_id, price );
+    _add_sell_order( seller, sym, token_id, price );
 }
 
-void cmnt::sellorder( name owner, asset quantity, asset price ) {
+void cmnt::addsellorder( name seller, asset quantity, asset price ) {
     symbol_code sym = quantity.symbol.code();
     eosio_assert( sym.is_valid(), "invalid symbol name" );
     eosio_assert( quantity.symbol.precision() == 0, "quantity must be a whole number" );
@@ -273,8 +238,8 @@ void cmnt::sellorder( name owner, asset quantity, asset price ) {
     uint64_t i = 0;
     uint64_t token_id;
     for (; i != quantity.amount; ++i ) {
-        token_id = find_own_token( owner, sym );
-        _add_sell_order( owner, sym, token_id, price );
+        token_id = find_own_token( seller, sym );
+        _add_sell_order( seller, sym, token_id, price );
     }
 }
 
@@ -302,12 +267,12 @@ void cmnt::issueandsell( asset quantity, asset price, string memo ) {
     uint64_t i = 0;
     uint64_t token_id;
     for (; i != quantity.amount; ++i ) {
-        token_id = _mint_token( issuer, sym );
+        token_id = _issue_token( issuer, sym );
         _add_sell_order( issuer, sym, token_id, price );
     }
 }
 
-void cmnt::transfer_eos( name to, asset value, string memo ) {
+void cmnt::_transfer_eos( name to, asset value, string memo ) {
     eosio_assert( is_account( to ), "to account does not exist" );
     eosio_assert( value.symbol == symbol("EOS", 4), "symbol of value must be EOS" );
     eosio_assert( memo.size() <= 256, "memo has more than 256 bytes" );
@@ -320,9 +285,12 @@ void cmnt::transfer_eos( name to, asset value, string memo ) {
     ).send();
 }
 
-void cmnt::buy( name user, symbol_code sym, uint64_t token_id, string memo ) {
-    require_auth( user );
-    eosio_assert( user != get_self(), "does not buy token by contract account" );
+void cmnt::buyfromorder( name buyer, symbol_code sym, uint64_t token_id, string memo ) {
+    require_auth( buyer );
+    eosio_assert( buyer != get_self(), "does not buy token by contract account" );
+
+    /// Check memo size
+    eosio_assert( memo.size() <= 256, "memo has more than 256 bytes" );
 
     token_index token_table( get_self(), sym.raw() );
     auto target_token = token_table.find( token_id );
@@ -332,22 +300,27 @@ void cmnt::buy( name user, symbol_code sym, uint64_t token_id, string memo ) {
     auto sell_order = sell_order_table.find( token_id );
     eosio_assert( sell_order != sell_order_table.end(), "order does not exist" );
 
-    /// Check memo size
-    eosio_assert( memo.size() <= 256, "memo has more than 256 bytes" );
+    asset price = sell_order->price;
+    name seller = sell_order->user;
 
-    _sub_sell_order( user, sym, token_id );
+    _sub_sell_order( buyer, sym, token_id );
     _lock_token( sym, token_id );
+
+    if ( price.amount > 0 ) {
+        string message = "executed as the inline action in buyfromorder of " + get_self().to_string();
+        _transfer_eos( seller, price, message );
+    }
 }
 
-// void cmnt::buyandunlock( name user, symbol_code sym, uint64_t token_id, capi_public_key subkey, string memo ) {
-//     buy( user, sym, token_id, memo );
-//     _set_subkey( user, sym, token_id, subkey );
+// void cmnt::buyandunlock( name buyer, symbol_code sym, uint64_t token_id, capi_public_key subkey, string memo ) {
+//     buyfromorder( buyer, sym, token_id, memo );
+//     _set_subkey( buyer, sym, token_id, subkey );
 // }
 
-/// あらかじめ user にこのコントラクトの eosio.code permission をつけておかないと実行できない。
-// void cmnt::sendandbuy( name user, symbol_code sym, uint64_t token_id, capi_public_key subkey, string memo ) {
-//     require_auth( user );
-//     eosio_assert( user != get_self(), "does not buy token by contract account" );
+/// あらかじめ buyer にこのコントラクトの eosio.code permission をつけておかないと実行できない。
+// void cmnt::sendandbuy( name buyer, symbol_code sym, uint64_t token_id, capi_public_key subkey, string memo ) {
+//     require_auth( buyer );
+//     eosio_assert( buyer != get_self(), "does not buy token by contract account" );
 //
 //     sell_order_index sell_order_table( get_self(), sym.raw() );
 //     auto sell_order = sell_order_table.find( token_id );
@@ -356,7 +329,7 @@ void cmnt::buy( name user, symbol_code sym, uint64_t token_id, string memo ) {
 //     /// Check memo size
 //     eosio_assert( memo.size() <= 256, "memo has more than 256 bytes" );
 //
-//     deposit_index deposit_table( get_self(), user.value );
+//     deposit_index deposit_table( get_self(), buyer.value );
 //     auto deposit_data = deposit_table.find( symbol_code("EOS").raw() );
 //     asset deposit = asset{ 0, symbol("EOS", 4) };
 //
@@ -372,32 +345,38 @@ void cmnt::buy( name user, symbol_code sym, uint64_t token_id, string memo ) {
 //         asset quantity = price - deposit; // 不足分をデポジット
 //         string transfer_memo = "send EOS to buy token";
 //         action(
-//             permission_level{ user, name("active") },
+//             permission_level{ buyer, name("active") },
 //             name("eosio.token"),
 //             name("transfer"),
-//             std::make_tuple( user, get_self(), quantity, transfer_memo )
+//             std::make_tuple( buyer, get_self(), quantity, transfer_memo )
 //         ).send();
 //     }
 //
-//     string buy_memo = "call cmnt::buy as inline action in " + get_self().to_string();
+//     string buy_memo = "execute as inline action in buyandunlock of " + get_self().to_string();
 //     action(
-//         permission_level{ user, name("active") },
+//         permission_level{ buyer, name("active") },
 //         get_self(),
 //         name("buyandunlock"),
-//         std::make_tuple( user, sym, token_id, subkey, buy_memo )
+//         std::make_tuple( buyer, sym, token_id, subkey, buy_memo )
 //     ).send();
 // }
 
-void cmnt::cancelsobyid( name owner, symbol_code sym, uint64_t token_id ) {
-    require_auth( owner );
-    eosio_assert( owner != get_self(), "does not cancel bid order by contract account" );
+void cmnt::cancelsobyid( name seller, symbol_code sym, uint64_t token_id ) {
+    require_auth( seller );
+    eosio_assert( seller != get_self(), "does not cancel bid order by contract account" );
 
-    _sub_sell_order( owner, sym, token_id );
+    sell_order_index sell_order_table( get_self(), sym.raw() );
+    auto sell_order = sell_order_table.find( token_id );
+    eosio_assert( sell_order != sell_order_table.end(), "order does not exist" );
+
+    eosio_assert( sell_order->user == seller, "be able to cancel only my order" );
+
+    _sub_sell_order( seller, sym, token_id );
 }
 
-void cmnt::cancelso( name owner, asset quantity ) {
-    require_auth( owner );
-    eosio_assert( owner != get_self(), "does not burn token by contract account" );
+void cmnt::cancelsello( name seller, asset quantity ) {
+    require_auth( seller );
+    eosio_assert( seller != get_self(), "does not burn token by contract account" );
 
     eosio_assert( quantity.symbol.precision() == 0, "symbol precision must be zero" );
     eosio_assert( quantity.amount > 0, "quantity must be positive" );
@@ -410,14 +389,14 @@ void cmnt::cancelso( name owner, asset quantity ) {
     uint64_t i = 0;
     uint64_t token_id;
     for (; i != quantity.amount; ++i ) {
-        token_id = find_own_sell_order( owner, sym );
-        _sub_sell_order( owner, sym, token_id );
+        token_id = find_own_sell_order( seller, sym );
+        _sub_sell_order( seller, sym, token_id );
     }
 }
 
-void cmnt::cancelsoburn( name owner, asset quantity ) {
-    require_auth( owner );
-    eosio_assert( owner != get_self(), "does not burn token by contract account" );
+void cmnt::cancelsoburn( name seller, asset quantity ) {
+    require_auth( seller );
+    eosio_assert( seller != get_self(), "does not burn token by contract account" );
 
     eosio_assert( quantity.symbol.precision() == 0, "symbol precision must be zero" );
     eosio_assert( quantity.amount > 0, "quantity must be positive" );
@@ -430,20 +409,21 @@ void cmnt::cancelsoburn( name owner, asset quantity ) {
     uint64_t i = 0;
     uint64_t token_id;
     for (; i != quantity.amount; ++i ) {
-        token_id = find_own_sell_order( owner, sym );
-        _sub_sell_order( owner, sym, token_id );
-        burnbyid( owner, sym, token_id );
+        token_id = find_own_sell_order( seller, sym );
+        _sub_sell_order( seller, sym, token_id );
+        burnbyid( seller, sym, token_id );
     }
 }
 
-void cmnt::buyorder( name user, symbol_code sym, asset price ) {
-    require_auth( user );
+void cmnt::addbuyorder( name buyer, symbol_code sym, asset price ) {
+    require_auth( buyer );
+    eosio_assert( buyer != get_self(), "contract itself should not buy token" );
 
-    _add_buy_order( user, sym, price );
+    uint64_t order_id = _add_buy_order( buyer, sym, price );
 }
 
-void cmnt::selltoorder( name owner, symbol_code sym, uint64_t token_id, uint64_t buy_order_id, string memo ) {
-    require_auth( owner );
+void cmnt::selltoorder( name seller, symbol_code sym, uint64_t token_id, uint64_t order_id, string memo ) {
+    require_auth( seller );
 
     // Check memo size
     eosio_assert( memo.size() <= 256, "memo has more than 256 bytes" );
@@ -451,22 +431,22 @@ void cmnt::selltoorder( name owner, symbol_code sym, uint64_t token_id, uint64_t
     token_index token_table( get_self(), sym.raw() );
     auto target_token = token_table.find( token_id );
     eosio_assert( target_token != token_table.end(), "token with id does not exist" );
-    eosio_assert( target_token->owner == owner, "you are not owner of the token" );
+    eosio_assert( target_token->owner == seller, "seller is not owner of the token" );
 
-    _sub_buy_order( owner, sym, buy_order_id );
-    _transfer_token( get_self(), owner, sym, token_id );
+    _sub_buy_order( seller, sym, order_id );
+    _transfer_token( get_self(), seller, sym, token_id );
     _lock_token( sym, token_id );
 }
 
-void cmnt::cancelbobyid( name user, symbol_code sym, uint64_t buy_order_id ) {
-    require_auth( user );
+void cmnt::cancelbobyid( name buyer, symbol_code sym, uint64_t order_id ) {
+    require_auth( buyer );
 
     buy_order_index buy_order_table( get_self(), sym.raw() );
-    auto buy_order_data = buy_order_table.find( buy_order_id );
+    auto buy_order_data = buy_order_table.find( order_id );
     eosio_assert( buy_order_data != buy_order_table.end(), "the buy order does not exist" );
-    eosio_assert( buy_order_data->user == user, "this is not your buy order" );
+    eosio_assert( buy_order_data->user == buyer, "this is not your buy order" );
 
-    _sub_buy_order( user, sym, buy_order_id );
+    _sub_buy_order( buyer, sym, order_id );
 }
 
 void cmnt::setmanager( symbol_code sym, uint64_t manager_token_id, vector<uint64_t> manager_token_list, vector<uint64_t> ratio_list, uint64_t others_ratio ) {
@@ -536,7 +516,7 @@ void cmnt::receive() {
     name from = transfer_data.from;
     name to = transfer_data.to;
     asset quantity = transfer_data.quantity;
-    string message = transfer_data.memo;
+    string memo = transfer_data.memo;
 
     /// Because "receive" action is called when this contract account
     /// is the sender or receiver of "eosio.token::transfer",
@@ -544,19 +524,19 @@ void cmnt::receive() {
     /// This contract account do not have balance record,
     /// so `from != get_self()` is needed.
     if ( to == get_self() && from != get_self() ) {
-        add_deposit( from, quantity );
+        _add_deopsit( from, quantity );
 
-        vector<string> sbc = split_by_comma( message );
+        vector<string> sbc = split_by_comma( memo );
         string contract_name = get_self().to_string();
 
         if ( sbc[0] == contract_name && sbc[1] == "buy" && sbc.size() == 4 ) {
             symbol_code sym = symbol_code( sbc[2] );
             uint64_t token_id = static_cast<uint64_t>( std::stoull(sbc[3]) );
-            string memo = "buy token in cmnt::receive of " + contract_name;
-            buy( from, sym, token_id, memo );
-        } else if ( sbc[0] == contract_name && sbc[1] == "buyorder" && sbc.size() == 3 ) {
+            string message = "buy token in receive of " + contract_name;
+            buyfromorder( from, sym, token_id, message );
+        } else if ( sbc[0] == contract_name && sbc[1] == "addbuyorder" && sbc.size() == 3 ) {
             symbol_code sym = symbol_code( sbc[2] );
-            buyorder( from, sym, quantity );
+            addbuyorder( from, sym, quantity );
         } else if ( sbc[0] == contract_name && sbc[1] == "setoffer" && sbc.size() == 4 ) {
             symbol_code sym = symbol_code( sbc[2] );
             string uri = sbc[3];
@@ -585,8 +565,10 @@ void cmnt::receive() {
 
 void cmnt::withdraw( name user, asset quantity, string memo ) {
     require_auth( user );
-    sub_deposit( user, quantity );
-    transfer_eos( user, quantity, memo );
+    _sub_deopsit( user, quantity );
+
+    string message = "execute as inline action in withdraw of " + get_self().to_string();
+    _transfer_eos( user, quantity, message );
 }
 
 void cmnt::setoffer( name provider, symbol_code sym, string uri, asset price ) {
@@ -606,7 +588,7 @@ void cmnt::setoffer( name provider, symbol_code sym, string uri, asset price ) {
         auto deposit_data = deposit_table.find( symbol_code("EOS").raw() );
         eosio_assert( deposit_data != deposit_table.end(), "your balance data do not exist" );
 
-        sub_deposit( provider, price );
+        _sub_deopsit( provider, price );
     }
 
     /// Ensure currency has been created
@@ -614,8 +596,9 @@ void cmnt::setoffer( name provider, symbol_code sym, string uri, asset price ) {
     eosio_assert( currency_data != currency_table.end(), "token with symbol does not exist." );
 
     offer_index offer_list( get_self(), sym.raw() );
+    uint64_t offer_id = offer_list.available_primary_key();
     offer_list.emplace( get_self(), [&]( auto& data ) {
-        data.id = offer_list.available_primary_key();
+        data.id = offer_id;
         data.price = price;
         data.provider = provider;
         data.uri = uri;
@@ -658,9 +641,9 @@ void cmnt::acceptoffer( name manager, symbol_code sym, uint64_t offer_id ) {
     // }
 
     uint64_t now = current_time();
-
+    uint64_t contents_id = contents_table.available_primary_key();
     contents_table.emplace( manager, [&]( auto& data ) {
-        data.id = contents_table.available_primary_key();
+        data.id = contents_id;
         data.sym = sym;
         data.price = price;
         data.provider = provider;
@@ -672,7 +655,7 @@ void cmnt::acceptoffer( name manager, symbol_code sym, uint64_t offer_id ) {
 
     require_recipient( provider );
 
-    update_pv_rate( sym, now, price );
+    _update_pv_rate( sym, now, price );
 
     if ( price.amount != 0 ) {
         /// 割り切れないときや、DEX に出しているときや、
@@ -689,18 +672,19 @@ void cmnt::acceptoffer( name manager, symbol_code sym, uint64_t offer_id ) {
         for (; it != token_table.end(); ++it ) {
             uint64_t token_id = it->id;
             name owner = it->owner;
+            string message = "executed as the inline action in acceptoffer of " + get_self().to_string();
             auto community_data = community_table.find( token_id );
             if ( community_data == community_table.end() ) {
                 /// トークン管理者でなければ、 price * others ratio をトークン所持者で均等に分配
                 share = asset{ static_cast<int64_t>( static_cast<float_t>(price.amount) * ( others_ratio / (num_of_owner - num_of_manager) ) ), price.symbol };
                 if ( share.amount > 0 ) {
-                    transfer_eos( owner, share, "executed as the inline action in cmnt::acceptoffer of " + get_self().to_string() );
+                    _transfer_eos( owner, share, message );
                 }
             } else {
                 /// トークン管理者でなければ、 price * ratio を分配
                 share = asset{ static_cast<int64_t>( static_cast<float_t>(price.amount) * community_data->ratio ), price.symbol };
                 if ( share.amount > 0 ) {
-                    transfer_eos( manager, share, "executed as the inline action in cmnt::acceptoffer of " + get_self().to_string() );
+                    _transfer_eos( manager, share, message );
                 }
             }
         }
@@ -717,7 +701,8 @@ void cmnt::removeoffer( name provider, symbol_code sym, uint64_t offer_id ) {
 
     offer_list.erase( offer_data );
 
-    transfer_eos( provider, offer_data->price, "executed as the inline action in cmnt::acceptoffer of " + get_self().to_string() );
+    string message = "executed as the inline action in acceptoffer of " + get_self().to_string();
+    _transfer_eos( provider, offer_data->price, message );
 }
 
 void cmnt::addpvcount( uint64_t contents_id, uint64_t pv_count ) {
@@ -857,7 +842,7 @@ void cmnt::_create_token( name issuer, symbol_code sym ) {
     });
 
     /// Issue token to issuer
-    uint64_t token_id = _mint_token( issuer, sym );
+    uint64_t token_id = _issue_token( issuer, sym );
 
     /// Resister community manager
     community_index community_table( get_self(), sym.raw() );
@@ -868,7 +853,7 @@ void cmnt::_create_token( name issuer, symbol_code sym ) {
 }
 
 /// subkey を登録しないでトークン発行
-uint64_t cmnt::_mint_token( name to, symbol_code sym ) {
+uint64_t cmnt::_issue_token( name to, symbol_code sym ) {
     /// Ensure currency has been created
     auto currency_data = currency_table.find( sym.raw() );
     eosio_assert( currency_data != currency_table.end(), "token with symbol does not exist. create token before issue" );
@@ -876,9 +861,9 @@ uint64_t cmnt::_mint_token( name to, symbol_code sym ) {
     name issuer = currency_data->issuer;
     asset quantity = asset{ 1, symbol(sym, 0) };
 
-    add_supply( quantity );
-    add_balance( to, quantity, issuer );
-    increment_member( to, sym );
+    _add_supply( quantity );
+    _add_balance( to, quantity, issuer );
+    _increment_member( to, sym );
 
     token_index token_table( get_self(), sym.raw() );
     uint64_t token_id = token_table.available_primary_key();
@@ -901,23 +886,42 @@ void cmnt::_transfer_token( name from, name to, symbol_code sym, uint64_t id ) {
     /// Ensure owner owns token
     eosio_assert( token_data->owner == from, "sender does not own token with specified ID");
 
-    increment_member( to, sym );
-    add_balance( to, asset{ 1, symbol(sym, 0) } , from );
+    _increment_member( to, sym );
+    _add_balance( to, asset{ 1, symbol(sym, 0) } , from );
 
     /// Transfer NFT from sender to receiver
     token_table.modify( token_data, from, [&]( auto& data ) {
         data.owner = to;
     });
 
-    decrement_member( from, sym );
-    sub_balance( from, asset{ 1, symbol(sym, 0) } );
+    _decrement_member( from, sym );
+    _sub_balance( from, asset{ 1, symbol(sym, 0) } );
+}
+
+void cmnt::_burn_token( name owner, symbol_code sym, uint64_t token_id ) {
+    token_index token_table( get_self(), sym.raw() );
+    auto token_data = token_table.find( token_id );
+    eosio_assert( token_data != token_table.end(), "token with id does not exist" );
+
+    community_index community_table( get_self(), sym.raw() );
+    auto community_data = community_table.find( token_id );
+    eosio_assert( community_data == community_table.end(), "manager should not delete my token" );
+
+    /// Remove token from tokens table
+    token_table.erase( token_data );
+
+    _decrement_member( owner, sym );
+
+    asset quantity( asset{ 1, symbol(sym, 0) } );
+    _sub_balance( owner, quantity );
+    _sub_supply( quantity );
 }
 
 void cmnt::_set_subkey( name owner, symbol_code sym, uint64_t token_id, capi_public_key subkey ) {
-    /// Find token to burn
     token_index token_table( get_self(), sym.raw() );
     auto target_token = token_table.find( token_id );
     eosio_assert( target_token != token_table.end(), "token with id does not exist" );
+
     eosio_assert( target_token->owner == owner, "token not owned by account" );
 
     token_table.modify( target_token, owner, [&](auto& data) {
@@ -927,66 +931,10 @@ void cmnt::_set_subkey( name owner, symbol_code sym, uint64_t token_id, capi_pub
         data.active = 1;
     });
 
-    /// RAM を所有者に負担させる
-    sub_balance( owner, asset{ 1, symbol(sym, 0) } );
-	add_balance( owner, asset{ 1, symbol(sym, 0) } , owner );
-}
-
-void cmnt::_add_sell_order( name from, symbol_code sym, uint64_t token_id, asset price ) {
-    _transfer_token( from, get_self(), sym, token_id );
-
-    sell_order_index sell_order_table( get_self(), sym.raw() );
-    sell_order_table.emplace( from, [&]( auto& data ) {
-        data.id = token_id;
-        data.price = price;
-        data.user = from;
-    });
-
-    sub_deposit( from, price );
-}
-
-void cmnt::_sub_sell_order( name to, symbol_code sym, uint64_t token_id ) {
-    sell_order_index sell_order_table( get_self(), sym.raw() );
-    auto sell_order = sell_order_table.find( token_id );
-    eosio_assert( sell_order != sell_order_table.end(), "order does not exist" );
-    eosio_assert( sell_order->user == to, "order does not serve by account" );
-
-    asset price = sell_order->price;
-
-    sell_order_table.erase( sell_order );
-
-    _transfer_token( get_self(), to, sym, token_id );
-
-    add_deposit( to, price );
-}
-
-void cmnt::_add_buy_order( name from, symbol_code sym, asset price ) {
-    /// price に指定した asset が EOS であることの確認
-    eosio_assert( price.symbol == symbol("EOS", 4), "allow only EOS as price" );
-
-    auto currency_data = currency_table.find( sym.raw() );
-    eosio_assert( currency_data != currency_table.end(), "token with symbol do not exists" );
-    eosio_assert( price >= currency_data->minimumprice, "price is lower than minimum selling price" );
-
-    buy_order_index buy_order_table( get_self(), sym.raw() );
-    buy_order_table.emplace( from, [&]( auto& data ) {
-        data.id = buy_order_table.available_primary_key();
-        data.price = price;
-        data.user = from;
-    });
-
-    sub_deposit( from, price );
-}
-
-void cmnt::_sub_buy_order( name to, symbol_code sym, uint64_t buy_order_id ) {
-    buy_order_index buy_order_table( get_self(), sym.raw() );
-    auto buy_order_data = buy_order_table.find( buy_order_id );
-    eosio_assert( buy_order_data != buy_order_table.end(), "the buy order does not exist" );
-    eosio_assert( buy_order_data->user == to, "this is not your buy order" );
-
-    buy_order_table.erase( buy_order_data );
-
-    add_deposit( to, buy_order_data->price );
+    /// RAM を owner に負担させる
+    asset quantity( 1, symbol(sym, 0) );
+    _sub_balance( owner, quantity );
+	_add_balance( owner, quantity, owner );
 }
 
 void cmnt::_lock_token( symbol_code sym, uint64_t token_id ) {
@@ -999,32 +947,68 @@ void cmnt::_lock_token( symbol_code sym, uint64_t token_id ) {
     });
 }
 
-uint64_t cmnt::get_cmnty_pv_count( symbol_code sym ) {
-    cmnty_pv_count_index cmnty_pv_count_table( get_self(), sym.raw() );
+void cmnt::_add_sell_order( name from, symbol_code sym, uint64_t token_id, asset price ) {
+    auto currency_data = currency_table.find( sym.raw() );
+    eosio_assert( currency_data != currency_table.end(), "token with symbol do not exists" );
 
-    /// あるいは過去30日分だけを取り出す
-    auto it = cmnty_pv_count_table.lower_bound( static_cast<uint64_t>( current_time() - 30*24*60*60 ) );
+    token_index token_table( get_self(), sym.raw() );
+    auto target_token = token_table.find( token_id );
+    eosio_assert( target_token != token_table.end(), "token with id does not exist" );
 
-    uint64_t cmnty_pv_count = 0;
-    for (; it != cmnty_pv_count_table.end(); ++it ) {
-        cmnty_pv_count += it->count;
-    }
-    return cmnty_pv_count;
+    eosio_assert( price.symbol == symbol("EOS", 4), "allow only EOS as price" );
+
+    _transfer_token( from, get_self(), sym, token_id );
+
+    sell_order_index sell_order_table( get_self(), sym.raw() );
+    sell_order_table.emplace( from, [&]( auto& data ) {
+        data.id = token_id;
+        data.price = price;
+        data.user = from;
+    });
 }
 
-uint64_t cmnt::get_world_pv_count() {
-    /// あるいは過去30日分だけを取り出す
-    auto it = world_pv_count_table.lower_bound( static_cast<uint64_t>( current_time() - 30*24*60*60 ) );
+void cmnt::_sub_sell_order( name to, symbol_code sym, uint64_t token_id ) {
+    sell_order_index sell_order_table( get_self(), sym.raw() );
+    auto sell_order = sell_order_table.find( token_id );
+    eosio_assert( sell_order != sell_order_table.end(), "order does not exist" );
 
-    uint64_t world_pv_count = 0;
-    for (; it != world_pv_count_table.end(); ++it ) {
-        world_pv_count += it->count;
-    }
-    return world_pv_count;
+    sell_order_table.erase( sell_order );
+
+    _transfer_token( get_self(), to, sym, token_id );
 }
 
+uint64_t cmnt::_add_buy_order( name from, symbol_code sym, asset price ) {
+    eosio_assert( price.symbol == symbol("EOS", 4), "allow only EOS as price" );
 
-void cmnt::update_pv_rate( symbol_code sym, uint64_t timestamp, asset new_offer_price ) {
+    auto currency_data = currency_table.find( sym.raw() );
+    eosio_assert( currency_data != currency_table.end(), "token with symbol do not exists" );
+
+    eosio_assert( price >= currency_data->minimumprice, "price is lower than minimum selling price" );
+
+    _sub_deopsit( from, price );
+
+    buy_order_index buy_order_table( get_self(), sym.raw() );
+    uint64_t order_id = buy_order_table.available_primary_key();
+    buy_order_table.emplace( from, [&]( auto& data ) {
+        data.id = order_id;
+        data.price = price;
+        data.user = from;
+    });
+
+    return order_id;
+}
+
+void cmnt::_sub_buy_order( name to, symbol_code sym, uint64_t order_id ) {
+    buy_order_index buy_order_table( get_self(), sym.raw() );
+    auto buy_order_data = buy_order_table.find( order_id );
+    eosio_assert( buy_order_data != buy_order_table.end(), "the buy order does not exist" );
+
+    buy_order_table.erase( buy_order_data );
+
+    _add_deopsit( to, buy_order_data->price );
+}
+
+void cmnt::_update_pv_rate( symbol_code sym, uint64_t timestamp, asset new_offer_price ) {
     eosio_assert( new_offer_price.symbol == symbol("EOS", 4), "symbol of offer price must be EOS" );
 
     eosio_assert( timestamp != 0, "invalid timestamp" );
@@ -1059,7 +1043,7 @@ void cmnt::update_pv_rate( symbol_code sym, uint64_t timestamp, asset new_offer_
     });
 }
 
-void cmnt::update_minimum_price( symbol_code sym ) {
+void cmnt::_update_minimum_price( symbol_code sym ) {
     auto currency_data = currency_table.find( sym.raw() );
     eosio_assert( currency_data != currency_table.end(), "this currency does not exist" );
     uint64_t cmnty_pv_count = currency_data->pvcount;
@@ -1078,7 +1062,7 @@ void cmnt::update_minimum_price( symbol_code sym ) {
     });
 }
 
-void cmnt::add_balance( name owner, asset quantity, name ram_payer ) {
+void cmnt::_add_balance( name owner, asset quantity, name ram_payer ) {
     eosio_assert( quantity.symbol.precision() == 0, "symbol precision must be zero" );
     eosio_assert( quantity.amount > 0, "invalid quantity" );
 
@@ -1096,7 +1080,7 @@ void cmnt::add_balance( name owner, asset quantity, name ram_payer ) {
     }
 }
 
-void cmnt::sub_balance( name owner, asset quantity ) {
+void cmnt::_sub_balance( name owner, asset quantity ) {
     eosio_assert( quantity.symbol.precision() == 0, "symbol precision must be zero" );
     eosio_assert( quantity.amount > 0, "invalid quantity" );
 
@@ -1115,7 +1099,7 @@ void cmnt::sub_balance( name owner, asset quantity ) {
     }
 }
 
-void cmnt::add_supply( asset quantity ) {
+void cmnt::_add_supply( asset quantity ) {
     eosio_assert( quantity.symbol.precision() == 0, "symbol precision must be zero" );
     eosio_assert( quantity.amount > 0, "invalid quantity" );
 
@@ -1129,7 +1113,7 @@ void cmnt::add_supply( asset quantity ) {
     });
 }
 
-void cmnt::sub_supply( asset quantity ) {
+void cmnt::_sub_supply( asset quantity ) {
     eosio_assert( quantity.symbol.precision() == 0, "symbol precision must be zero" );
     eosio_assert( quantity.amount > 0, "invalid quantity" );
 
@@ -1144,7 +1128,7 @@ void cmnt::sub_supply( asset quantity ) {
     });
 }
 
-void cmnt::add_deposit( name owner, asset quantity ) {
+void cmnt::_add_deopsit( name owner, asset quantity ) {
     eosio_assert( is_account( owner ), "owner account does not exist" );
     eosio_assert( quantity.symbol == symbol("EOS", 4), "must EOS token" );
 
@@ -1174,7 +1158,7 @@ void cmnt::add_deposit( name owner, asset quantity ) {
     }
 }
 
-void cmnt::sub_deposit( name owner, asset quantity ) {
+void cmnt::_sub_deopsit( name owner, asset quantity ) {
     eosio_assert( is_account( owner ), "owner account does not exist");
     eosio_assert( quantity.symbol == symbol("EOS", 4), "must be EOS token" );
     eosio_assert( quantity.amount >= 0, "must be nonnegative" );
@@ -1208,7 +1192,7 @@ void cmnt::sub_deposit( name owner, asset quantity ) {
 }
 
 /// トークンを増やす前に確認する
-void cmnt::increment_member( name user, symbol_code sym ) {
+void cmnt::_increment_member( name user, symbol_code sym ) {
     token_index token_table( get_self(), sym.raw() );
     auto it = token_table.begin();
     bool found = false;
@@ -1229,7 +1213,7 @@ void cmnt::increment_member( name user, symbol_code sym ) {
 }
 
 /// トークンを減らした後に確認する
-void cmnt::decrement_member( name user, symbol_code sym ) {
+void cmnt::_decrement_member( name user, symbol_code sym ) {
     token_index token_table( get_self(), sym.raw() );
     auto it = token_table.begin();
     bool found = false;
@@ -1314,6 +1298,30 @@ uint64_t cmnt::find_pvdata_by_uri( symbol_code sym, string uri ) {
     return uri_id;
 }
 
+uint64_t cmnt::get_cmnty_pv_count( symbol_code sym ) {
+    cmnty_pv_count_index cmnty_pv_count_table( get_self(), sym.raw() );
+
+    /// あるいは過去30日分だけを取り出す
+    auto it = cmnty_pv_count_table.lower_bound( static_cast<uint64_t>( current_time() - 30*24*60*60 ) );
+
+    uint64_t cmnty_pv_count = 0;
+    for (; it != cmnty_pv_count_table.end(); ++it ) {
+        cmnty_pv_count += it->count;
+    }
+    return cmnty_pv_count;
+}
+
+uint64_t cmnt::get_world_pv_count() {
+    /// あるいは過去30日分だけを取り出す
+    auto it = world_pv_count_table.lower_bound( static_cast<uint64_t>( current_time() - 30*24*60*60 ) );
+
+    uint64_t world_pv_count = 0;
+    for (; it != world_pv_count_table.end(); ++it ) {
+        world_pv_count += it->count;
+    }
+    return world_pv_count;
+}
+
 vector<string> cmnt::split_by_comma( string str ) {
     eosio_assert( str.size() <= 256, "too long str" );
     const char* c = str.c_str();
@@ -1377,15 +1385,15 @@ extern "C" {
                    (burn)
                    (refleshkey)
                    (sellobyid)
-                   (sellorder)
+                   (addsellorder)
                    (issueandsell)
-                   (buy)
+                   (buyfromorder)
                    // (buyandunlock)
                    // (sendandbuy)
                    (cancelsobyid)
-                   (cancelso)
+                   (cancelsello)
                    (cancelsoburn)
-                   (buyorder)
+                   (addbuyorder)
                    (selltoorder)
                    (cancelbobyid)
                    (setmanager)

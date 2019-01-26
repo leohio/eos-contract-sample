@@ -1,5 +1,5 @@
 {
-    "____comment": "This file was generated with eosio-abigen. DO NOT EDIT Fri Jan 25 20:06:53 2019",
+    "____comment": "This file was generated with eosio-abigen. DO NOT EDIT Sat Jan 26 14:24:57 2019",
     "version": "eosio::abi/1.0",
     "structs": [
         {
@@ -31,6 +31,24 @@
             ]
         },
         {
+            "name": "addbuyorder",
+            "base": "",
+            "fields": [
+                {
+                    "name": "buyer",
+                    "type": "name"
+                },
+                {
+                    "name": "sym",
+                    "type": "symbol_code"
+                },
+                {
+                    "name": "price",
+                    "type": "asset"
+                }
+            ]
+        },
+        {
             "name": "addpvcount",
             "base": "",
             "fields": [
@@ -41,6 +59,24 @@
                 {
                     "name": "pv_count",
                     "type": "uint64"
+                }
+            ]
+        },
+        {
+            "name": "addsellorder",
+            "base": "",
+            "fields": [
+                {
+                    "name": "seller",
+                    "type": "name"
+                },
+                {
+                    "name": "quantity",
+                    "type": "asset"
+                },
+                {
+                    "name": "price",
+                    "type": "asset"
                 }
             ]
         },
@@ -77,11 +113,11 @@
             ]
         },
         {
-            "name": "buy",
+            "name": "buyfromorder",
             "base": "",
             "fields": [
                 {
-                    "name": "user",
+                    "name": "buyer",
                     "type": "name"
                 },
                 {
@@ -99,29 +135,11 @@
             ]
         },
         {
-            "name": "buyorder",
-            "base": "",
-            "fields": [
-                {
-                    "name": "user",
-                    "type": "name"
-                },
-                {
-                    "name": "sym",
-                    "type": "symbol_code"
-                },
-                {
-                    "name": "price",
-                    "type": "asset"
-                }
-            ]
-        },
-        {
             "name": "cancelbobyid",
             "base": "",
             "fields": [
                 {
-                    "name": "user",
+                    "name": "buyer",
                     "type": "name"
                 },
                 {
@@ -129,17 +147,17 @@
                     "type": "symbol_code"
                 },
                 {
-                    "name": "buy_order_id",
+                    "name": "order_id",
                     "type": "uint64"
                 }
             ]
         },
         {
-            "name": "cancelso",
+            "name": "cancelsello",
             "base": "",
             "fields": [
                 {
-                    "name": "owner",
+                    "name": "seller",
                     "type": "name"
                 },
                 {
@@ -153,7 +171,7 @@
             "base": "",
             "fields": [
                 {
-                    "name": "owner",
+                    "name": "seller",
                     "type": "name"
                 },
                 {
@@ -167,7 +185,7 @@
             "base": "",
             "fields": [
                 {
-                    "name": "owner",
+                    "name": "seller",
                     "type": "name"
                 },
                 {
@@ -439,7 +457,7 @@
             "base": "",
             "fields": [
                 {
-                    "name": "owner",
+                    "name": "seller",
                     "type": "name"
                 },
                 {
@@ -449,24 +467,6 @@
                 {
                     "name": "token_id",
                     "type": "uint64"
-                },
-                {
-                    "name": "price",
-                    "type": "asset"
-                }
-            ]
-        },
-        {
-            "name": "sellorder",
-            "base": "",
-            "fields": [
-                {
-                    "name": "owner",
-                    "type": "name"
-                },
-                {
-                    "name": "quantity",
-                    "type": "asset"
                 },
                 {
                     "name": "price",
@@ -479,7 +479,7 @@
             "base": "",
             "fields": [
                 {
-                    "name": "owner",
+                    "name": "seller",
                     "type": "name"
                 },
                 {
@@ -491,7 +491,7 @@
                     "type": "uint64"
                 },
                 {
-                    "name": "buy_order_id",
+                    "name": "order_id",
                     "type": "uint64"
                 },
                 {
@@ -672,8 +672,18 @@
             "ricardian_contract": ""
         },
         {
+            "name": "addbuyorder",
+            "type": "addbuyorder",
+            "ricardian_contract": ""
+        },
+        {
             "name": "addpvcount",
             "type": "addpvcount",
+            "ricardian_contract": ""
+        },
+        {
+            "name": "addsellorder",
+            "type": "addsellorder",
             "ricardian_contract": ""
         },
         {
@@ -687,13 +697,8 @@
             "ricardian_contract": ""
         },
         {
-            "name": "buy",
-            "type": "buy",
-            "ricardian_contract": ""
-        },
-        {
-            "name": "buyorder",
-            "type": "buyorder",
+            "name": "buyfromorder",
+            "type": "buyfromorder",
             "ricardian_contract": ""
         },
         {
@@ -702,8 +707,8 @@
             "ricardian_contract": ""
         },
         {
-            "name": "cancelso",
-            "type": "cancelso",
+            "name": "cancelsello",
+            "type": "cancelsello",
             "ricardian_contract": ""
         },
         {
@@ -754,11 +759,6 @@
         {
             "name": "sellobyid",
             "type": "sellobyid",
-            "ricardian_contract": ""
-        },
-        {
-            "name": "sellorder",
-            "type": "sellorder",
             "ricardian_contract": ""
         },
         {

@@ -77,7 +77,7 @@ cleos get table eosio.token mokemokecore accounts
 cleos get table eosio.token leohioleohio accounts
 
 # トークンを注文する（デポジットと注文のアクションを同時に行う）
-cleos push action eosio.token transfer '["leohioleohio", "toycashcmnty", "0.1000 EOS", "toycashcmnty,buyorder,TOY"]' -p leohioleohio@active
+cleos push action eosio.token transfer '["leohioleohio", "toycashcmnty", "0.1000 EOS", "toycashcmnty,addbuyorder,TOY"]' -p leohioleohio@active
 
 cleos get table toycashcmnty TOY token
 cleos get table toycashcmnty TOY buyorder

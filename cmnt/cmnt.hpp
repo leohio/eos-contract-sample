@@ -53,18 +53,18 @@ class [[eosio::contract]] cmnt : public eosio::contract {
         [[eosio::action]] void         burn( name owner, asset quantity );
         [[eosio::action]] void   refleshkey( name owner, symbol_code sym, uint64_t token_id, capi_public_key subkey );
         // [[eosio::action]] void         lock( name claimer, uint64_t token_id, string data, capi_signature sig );
-        [[eosio::action]] void    sellobyid( name owner, symbol_code sym, uint64_t token_id, asset price );
-        [[eosio::action]] void    sellorder( name owner, asset quantity, asset price );
+        [[eosio::action]] void    sellobyid( name seller, symbol_code sym, uint64_t token_id, asset price );
+        [[eosio::action]] void addsellorder( name seller, asset quantity, asset price );
         [[eosio::action]] void issueandsell( asset quantity, asset price, string memo );
-        [[eosio::action]] void          buy( name user, symbol_code sym, uint64_t token_id, string memo );
-        // [[eosio::action]] void buyandunlock( name user, symbol_code sym, uint64_t token_id, capi_public_key subkey, string memo );
-        // [[eosio::action]] void   sendandbuy( name user, symbol_code sym, uint64_t token_id, capi_public_key subkey, string memo );
-        [[eosio::action]] void cancelsobyid( name owner, symbol_code sym, uint64_t token_id );
-        [[eosio::action]] void     cancelso( name owner, asset quantity );
-        [[eosio::action]] void cancelsoburn( name owner, asset quantity );
-        [[eosio::action]] void     buyorder( name user, symbol_code sym, asset price );
-        [[eosio::action]] void  selltoorder( name owner, symbol_code sym, uint64_t token_id, uint64_t buy_order_id, string memo );
-        [[eosio::action]] void cancelbobyid( name user, symbol_code sym, uint64_t buy_order_id );
+        [[eosio::action]] void buyfromorder( name buyer, symbol_code sym, uint64_t token_id, string memo );
+        // [[eosio::action]] void buyandunlock( name buyer, symbol_code sym, uint64_t token_id, capi_public_key subkey, string memo );
+        // [[eosio::action]] void   sendandbuy( name buyer, symbol_code sym, uint64_t token_id, capi_public_key subkey, string memo );
+        [[eosio::action]] void cancelsobyid( name seller, symbol_code sym, uint64_t token_id );
+        [[eosio::action]] void  cancelsello( name seller, asset quantity );
+        [[eosio::action]] void cancelsoburn( name seller, asset quantity );
+        [[eosio::action]] void  addbuyorder( name buyer, symbol_code sym, asset price );
+        [[eosio::action]] void  selltoorder( name seller, symbol_code sym, uint64_t token_id, uint64_t order_id, string memo );
+        [[eosio::action]] void cancelbobyid( name buyer, symbol_code sym, uint64_t order_id );
         [[eosio::action]] void   setmanager( symbol_code sym, uint64_t manager_token_id, vector<uint64_t> manager_token_list, vector<uint64_t> ratio_list, uint64_t others_ratio );
         [[eosio::action]] void     withdraw( name user, asset quantity, string memo );
         [[eosio::action]] void     setoffer( name provider, symbol_code sym, string uri, asset price );
@@ -256,6 +256,10 @@ class [[eosio::contract]] cmnt : public eosio::contract {
         using pv_rate_index = eosio::multi_index< name("pvrate"), pvrate >;
 
     private:
+        /**
+         *  Multi Index Table
+        **/
+
         total_deposit_index total_deposit_table;
         world_index world_table;
         currency_index currency_table;
@@ -268,81 +272,43 @@ class [[eosio::contract]] cmnt : public eosio::contract {
          * Private Function
         **/
 
+        /// Execute Inline Action
+
+        void _transfer_eos( name to, asset value, string memo );
+
+        /// Modify Table
+
         void _create_token( name issuer, symbol_code sym );
-        uint64_t _mint_token( name to, symbol_code sym );
+        uint64_t _issue_token( name to, symbol_code sym );
         void _transfer_token( name from, name to, symbol_code sym, uint64_t id );
+        void _burn_token( name owner, symbol_code sym, uint64_t token_id );
         void _set_subkey( name owner, symbol_code sym, uint64_t token_id, capi_public_key subkey );
+        void _lock_token( symbol_code sym, uint64_t token_id );
         void _add_sell_order( name from, symbol_code sym, uint64_t token_id, asset price );
         void _sub_sell_order( name to, symbol_code sym, uint64_t token_id );
-        void _add_buy_order( name from, symbol_code sym, asset price );
-        void _sub_buy_order( name to, symbol_code sym, uint64_t buy_order_id );
-        void _lock_token( symbol_code sym, uint64_t token_id );
-        void transfer_eos( name to, asset value, string memo );
-        void update_pv_rate( symbol_code sym, uint64_t timestamp, asset new_offer_price );
-        void update_minimum_price( symbol_code sym );
-        void increment_member( name user, symbol_code sym );
-        void decrement_member( name user, symbol_code sym );
-        void add_balance( name owner, asset quantity, name ram_payer );
-        void sub_balance( name owner, asset quantity );
-        void add_supply( asset quantity );
-        void sub_supply( asset quantity );
-        void add_deposit( name owner, asset quantity );
-        void sub_deposit( name owner, asset quantity );
+        uint64_t _add_buy_order( name from, symbol_code sym, asset price );
+        void _sub_buy_order( name to, symbol_code sym, uint64_t order_id );
+        void _update_pv_rate( symbol_code sym, uint64_t timestamp, asset new_offer_price );
+        void _update_minimum_price( symbol_code sym );
+        void _add_balance( name owner, asset quantity, name ram_payer );
+        void _sub_balance( name owner, asset quantity );
+        void _add_supply( asset quantity );
+        void _sub_supply( asset quantity );
+        void _add_deopsit( name owner, asset quantity );
+        void _sub_deopsit( name owner, asset quantity );
+        void _increment_member( name user, symbol_code sym );
+        void _decrement_member( name user, symbol_code sym );
+
+        /// Search Table
+
         uint64_t find_own_token( name owner, symbol_code sym );
         uint64_t find_own_sell_order( name owner, symbol_code sym );
         uint64_t find_pvdata_by_uri( symbol_code sym, string uri );
-        uint64_t find_offer_by_uri( symbol_code sym, string uri );
+        // uint64_t find_offer_by_uri( symbol_code sym, string uri );
         uint64_t get_cmnty_pv_count( symbol_code sym );
         uint64_t get_world_pv_count();
-        vector<string> split_by_comma( string memo );
 
-        /// accounts, deposit, totaldeposit, currency, token 以外のデータをすべて消去する
-        // void initialize_world() {
-        //     auto world_data = world_table.find( get_self().value );
-        //     if ( world_data != world_table.end() ) {
-        //         world_table.erase( world_data );
-        //     }
-        //
-        //     for ( auto it = currency_table.begin(); it != currency_table.end(); ++it ) {
-        //         symbol_code sym = it->supply.symbol.code();
-        //
-        //         offer_index offer_table( get_self(), sym.raw() );
-        //         for ( auto it2 = offer_table.begin(); it2 != offer_table.end(); ++it2 ) {
-        //             offer_table.erase( it2 );
-        //         }
-        //
-        //         cmnty_pv_count_index cmnty_pv_count_table( get_self(), sym.raw() );
-        //         for ( auto it2 = cmnty_pv_count_table.begin(); it2 != cmnty_pv_count_table.end(); ++it2 ) {
-        //             cmnty_pv_count_table.erase( it2 );
-        //         }
-        //
-        //         currency_table.modify( it, get_self(), [&]( auto& data ) {
-        //             data.minimumprice = asset{ 0, symbol("EOS", 4) };
-        //             data.pvcount = 0;
-        //         });
-        //     }
-        //
-        //     for ( auto it = sell_order_table.begin(); it != sell_order_table.end(); ++it ) {
-        //         sell_order_table.erase( it );
-        //     }
-        //
-        //     for ( auto it = contents_table.begin(); it != contents_table.end(); ++it ) {
-        //         uint64_t contents_id = it->id;
-        //         pv_count_index pv_count_table( get_self(), contents_id );
-        //
-        //         for ( auto it2 = pv_count_table.begin(); it2 != pv_count_table.end(); ++it2 ) {
-        //             pv_count_table.erase( it2 );
-        //         }
-        //
-        //         contents_table.erase( it );
-        //     }
-        //
-        //     for ( auto it = world_pv_count_table.begin(); it != world_pv_count_table.end(); ++it ) {
-        //         world_pv_count_table.erase( it );
-        //     }
-        //
-        //     for ( auto it = pv_rate_table.begin(); it != pv_rate_table.end(); ++it ) {
-        //         pv_rate_table.erase( it );
-        //     }
-        // }
+        /// Others
+
+        vector<string> split_by_comma( string memo );
 };
