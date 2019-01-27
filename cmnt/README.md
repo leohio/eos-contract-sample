@@ -4,6 +4,8 @@
 
 PCS を拡張し、配信コンテンツの PV 数を元にトークンの価値を算出できるようにした規格
 
+[API Reference](https://github.com/mokemokehardcore/eos-contract-sample/wiki/Community-Scaling-Token)
+
 ## Example
 
 ### Preparation
