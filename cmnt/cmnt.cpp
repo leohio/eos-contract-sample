@@ -46,6 +46,12 @@ void cmnt::create( name issuer, symbol_code sym ) {
 //     }
 // }
 
+/**
+ * [cmnt::issue description]
+ * @param user     [description]
+ * @param quantity [description]
+ * @param memo     [description]
+**/
 void cmnt::issue( name user, asset quantity, string memo ) {
     eosio_assert( is_account( user ), "user account does not exist");
     eosio_assert( user != get_self(), "do not issue token for contract account" );
@@ -62,7 +68,9 @@ void cmnt::issue( name user, asset quantity, string memo ) {
     eosio_assert( quantity.symbol == currency_data.supply.symbol, "symbol code or precision mismatch" );
 
     /// Ensure have issuer authorization
-    require_auth( currency_data.issuer );
+    name issuer = currency_data.issuer;
+    require_auth( issuer );
+    eosio_assert( issuer != get_self(), "contract account should not issue token" );
 
     uint64_t token_id;
     for ( uint64_t i = 0; i != quantity.amount; ++i ) {
@@ -139,14 +147,13 @@ void cmnt::transfer( name from, name to, symbol_code sym, string memo ) {
     _lock_token( sym, token_id );
 }
 
-void cmnt::burnbyid( name owner, symbol_code sym, uint64_t token_id ) {
-    require_auth( owner );
-    eosio_assert( owner != get_self(), "does not burn token by contract account" );
-
+void cmnt::burnbyid( symbol_code sym, uint64_t token_id ) {
     /// Find token to burn
     token_index token_table( get_self(), sym.raw() );
     auto& target_token = token_table.get( token_id, "token with id does not exist" );
-    eosio_assert( target_token.owner == owner, "token not owned by account" );
+    name owner = target_token.owner;
+    require_auth( owner );
+    eosio_assert( owner != get_self(), "does not burn token by contract account" );
 
 	_burn_token( owner, sym, token_id );
 }
@@ -164,14 +171,17 @@ void cmnt::burn( name owner, asset quantity ) {
     uint64_t token_id;
     for ( uint64_t i = 0; i != quantity.amount; ++i ) {
         token_id = find_own_token( owner, sym );
-        burnbyid( owner, sym, token_id );
+        burnbyid( sym, token_id );
     }
 }
 
 /// subkey を変更し lock 解除を行う
-void cmnt::refleshkey( name owner, symbol_code sym, uint64_t token_id, capi_public_key subkey ) {
+void cmnt::refleshkey( symbol_code sym, uint64_t token_id, capi_public_key subkey ) {
+    token_index token_table( get_self(), sym.raw() );
+    auto& target_token = token_table.get( token_id, "token with id does not exist" );
+    name owner = target_token.owner;
     require_auth( owner );
-    eosio_assert( owner != get_self(), "do not reflesh key by contract account" );
+    eosio_assert( owner != get_self(), "does not burn token by contract account" );
 
     _set_subkey( owner, sym, token_id, subkey );
 }
@@ -199,13 +209,13 @@ void cmnt::refleshkey( name owner, symbol_code sym, uint64_t token_id, capi_publ
 //    _lock_token( sym, token_id );
 // }
 
-void cmnt::addsellobyid( name seller, symbol_code sym, uint64_t token_id, asset price ) {
-    require_auth( seller );
-    eosio_assert( seller != get_self(), "does not serve bid order by contract account" );
-
+void cmnt::addsellobyid( symbol_code sym, uint64_t token_id, asset price ) {
     token_index token_table( get_self(), sym.raw() );
     auto& target_token = token_table.get( token_id, "token with id does not exist" );
-    eosio_assert( target_token.owner == seller, "token not owned by account" );
+
+    name seller = target_token.owner;
+    require_auth( seller );
+    eosio_assert( seller != get_self(), "contract accmount should not sell token" );
 
     auto& currency_data = currency_table.get( sym.raw(), "token with symbol does not exist." );
     // eosio_assert( price >= currency_data->minimumprice, "price is lower than minimum price" );
@@ -286,6 +296,7 @@ void cmnt::buyfromorder( name buyer, symbol_code sym, uint64_t token_id, string 
 
     asset price = sell_order.price;
     name seller = sell_order.user;
+    eosio_assert( seller != buyer, "buyer should differ from seller" );
 
     _sub_sell_order( buyer, sym, token_id );
     _lock_token( sym, token_id );
@@ -344,14 +355,12 @@ void cmnt::buyfromorder( name buyer, symbol_code sym, uint64_t token_id, string 
 //     ).send();
 // }
 
-void cmnt::cancelsobyid( name seller, symbol_code sym, uint64_t token_id ) {
-    require_auth( seller );
-    eosio_assert( seller != get_self(), "does not cancel bid order by contract account" );
-
+void cmnt::cancelsobyid( symbol_code sym, uint64_t token_id ) {
     sell_order_index sell_order_table( get_self(), sym.raw() );
     auto& sell_order = sell_order_table.get( token_id, "order does not exist" );
-
-    eosio_assert( sell_order.user == seller, "be able to cancel only my order" );
+    name seller = sell_order.user;
+    require_auth( seller );
+    eosio_assert( seller != get_self(), "does not cancel bid order by contract account" );
 
     _sub_sell_order( seller, sym, token_id );
 }
@@ -369,7 +378,7 @@ void cmnt::cancelsello( name seller, asset quantity ) {
     uint64_t token_id;
     for ( uint64_t i = 0; i != quantity.amount; ++i ) {
         token_id = find_own_sell_order( seller, sym );
-        cancelsobyid( seller, sym, token_id );
+        cancelsobyid( sym, token_id );
     }
 }
 
@@ -386,8 +395,8 @@ void cmnt::cancelsoburn( name seller, asset quantity ) {
     uint64_t token_id;
     for ( uint64_t i = 0; i != quantity.amount; ++i ) {
         token_id = find_own_sell_order( seller, sym );
-        cancelsobyid( seller, sym, token_id );
-        burnbyid( seller, sym, token_id );
+        cancelsobyid( sym, token_id );
+        burnbyid( sym, token_id );
     }
 }
 
@@ -399,19 +408,20 @@ void cmnt::addbuyorder( name buyer, symbol_code sym, asset price ) {
     uint64_t order_id = _add_buy_order( buyer, sym, price );
 }
 
-void cmnt::selltoorder( name seller, symbol_code sym, uint64_t token_id, uint64_t order_id, string memo ) {
-    require_auth( seller );
-
+void cmnt::selltoorder( symbol_code sym, uint64_t token_id, uint64_t order_id, string memo ) {
     eosio_assert( memo.size() <= 256, "memo has more than 256 bytes" );
 
     token_index token_table( get_self(), sym.raw() );
     auto& target_token = token_table.get( token_id, "token with id does not exist" );
-    eosio_assert( target_token.owner == seller, "token not owned by account" );
+    name seller = target_token.owner;
+    require_auth( seller );
+    eosio_assert( seller != get_self(), "contract account should " );
 
     buy_order_index buy_order_table( get_self(), sym.raw() );
     auto& buy_order_data = buy_order_table.get( order_id, "the buy order does not exist" );
 
     name buyer = buy_order_data.user;
+    eosio_assert( seller != buyer, "seller should differ from buyer" );
 
     /// deposit: _self -> seller
     _sub_buy_order( seller, sym, order_id );
@@ -541,12 +551,12 @@ void cmnt::receive() {
     }
 }
 
-void cmnt::withdraw( name user, asset quantity, string memo ) {
+void cmnt::withdraw( name user, asset value, string memo ) {
     require_auth( user );
-    _sub_deposit( user, quantity );
+    _sub_deposit( user, value );
 
     string message = "execute as inline action in withdraw of " + get_self().to_string();
-    _transfer_eos( user, quantity, message );
+    _transfer_eos( user, value, message );
 }
 
 void cmnt::setoffer( name provider, symbol_code sym, string uri, asset price ) {
@@ -702,7 +712,7 @@ void cmnt::addpvcount( uint64_t contents_id, uint64_t pv_count ) {
 
     /// add community pv count
     symbol_code sym = contents_data.sym;
-    auto currency_data = currency_table.get( sym.raw(), "this currency does not exist" );
+    auto& currency_data = currency_table.get( sym.raw(), "this currency does not exist" );
 
     cmnty_pv_count_index cmnty_pv_count_table( get_self(), sym.raw() );
     auto cmnty_pv_count_data = cmnty_pv_count_table.find( now );

@@ -1,5 +1,5 @@
 {
-    "____comment": "This file was generated with eosio-abigen. DO NOT EDIT Sat Jan 26 19:32:47 2019",
+    "____comment": "This file was generated with eosio-abigen. DO NOT EDIT Sun Jan 27 14:44:44 2019",
     "version": "eosio::abi/1.0",
     "structs": [
         {
@@ -67,10 +67,6 @@
             "base": "",
             "fields": [
                 {
-                    "name": "seller",
-                    "type": "name"
-                },
-                {
                     "name": "sym",
                     "type": "symbol_code"
                 },
@@ -120,10 +116,6 @@
             "name": "burnbyid",
             "base": "",
             "fields": [
-                {
-                    "name": "owner",
-                    "type": "name"
-                },
                 {
                     "name": "sym",
                     "type": "symbol_code"
@@ -206,10 +198,6 @@
             "name": "cancelsobyid",
             "base": "",
             "fields": [
-                {
-                    "name": "seller",
-                    "type": "name"
-                },
                 {
                     "name": "sym",
                     "type": "symbol_code"
@@ -434,10 +422,6 @@
             "base": "",
             "fields": [
                 {
-                    "name": "owner",
-                    "type": "name"
-                },
-                {
                     "name": "sym",
                     "type": "symbol_code"
                 },
@@ -473,10 +457,6 @@
             "name": "selltoorder",
             "base": "",
             "fields": [
-                {
-                    "name": "seller",
-                    "type": "name"
-                },
                 {
                     "name": "sym",
                     "type": "symbol_code"
@@ -622,7 +602,7 @@
                     "type": "name"
                 },
                 {
-                    "name": "quantity",
+                    "name": "value",
                     "type": "asset"
                 },
                 {
