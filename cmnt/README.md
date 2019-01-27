@@ -142,6 +142,23 @@ cleos push action toycashcmnty withdraw '["leohioleohio", "0.0001 EOS", "withdra
 * \_self はコントラクトがデプロイされていいるアカウント名を表します.
 * [] で括った文字列は変数の型を表します.
 
+* [create](../cmnt#create)
+* [issue](../cmnt#issue)
+* [transferbyid](../cmnt#transferbyid)
+* [burnbyid](../cmnt#burnbyid)
+* [refleshkey](../cmnt#refleshkey)
+* [addsellobyid](../cmnt#addsellobyid)
+* [buyfromorder](../cmnt#buyfromorder)
+* [cancelsobyid](../cmnt#cancelsobyid)
+* [addbuyorder](../cmnt#addbuyorder)
+* [selltoorder](../cmnt#selltoorder)
+* [cancelbobyid](../cmnt#cancelbobyid)
+* [withdraw](../cmnt#withdraw)
+* [setoffer](../cmnt#setoffer)
+* [acceptoffer](../cmnt#acceptoffer)
+* [removeoffer](../cmnt#removeoffer)
+* [addpvcount](../cmnt#addpvcount)
+
 ## Action
 
 ### create
@@ -425,6 +442,9 @@ cleos push action toycashcmnty issue '["leohioleohio", "2 TOY", "make TOY"]' -p 
 
 ## Table
 
+* [accounts](../cmnt#accounts)
+* [deposit](../cmnt#deposit)
+
 ### accounts
 
 トークンの所有枚数が記録される.
@@ -456,7 +476,6 @@ cleos get table toycashcmnty leohioleohio accounts
 > }
 ```
 
----
 
 ### deposit
 
