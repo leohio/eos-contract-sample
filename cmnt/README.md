@@ -139,8 +139,9 @@ cleos push action toycashcmnty withdraw '["leohioleohio", "0.0001 EOS", "withdra
 
 # API
 
-* \_self はコントラクトがデプロイされていいるアカウント名を表します.
-* [] で括った文字列は変数の型を表します.
+以下では, \_self でコントラクトがデプロイされているアカウント名を表します.
+
+また, [] で括った文字列は変数の型を表します.
 
 * [create](../cmnt#create)
 * [issue](../cmnt#issue)
