@@ -32,9 +32,7 @@ cleos get table toycashcmnty TOY token
 cleos get table toycashcmnty leohioleohio accounts
 
 # トークンに subkey を登録する
-cleos push action toycashcmnty refleshkey
-'["TOY", 0, "EOS6KEzAbW8EowSEPc1fd5t1mLMmnVDk5rw3PMjNsnZqRN9PPD23S"]'
--p leohioleohio@active
+cleos push action toycashcmnty refleshkey '["TOY", 0, "EOS6KEzAbW8EowSEPc1fd5t1mLMmnVDk5rw3PMjNsnZqRN9PPD23S"]' -p leohioleohio@active
 
 cleos get table toycashcmnty TOY token
 
@@ -58,7 +56,7 @@ cleos get table eosio.token mokemokecore accounts
 cleos get table eosio.token leohioleohio accounts
 
 # トークンを売りに出す
-cleos push action toycashcmnty addsellobyid '["TOY", 2, "0.1000 EOS", "serve sell order"]' -p leohioleohio@active
+cleos push action toycashcmnty addsellobyid '["TOY", 2, "0.1000 EOS"]' -p leohioleohio@active
 
 cleos get table toycashcmnty TOY token
 cleos get table toycashcmnty TOY sellorder
@@ -88,7 +86,7 @@ cleos get table toycashcmnty TOY buyorder
 cleos get table eosio.token leohioleohio accounts
 
 # トークンを売る
-cleos push action toycashcmnty selltoorder '["TOY", 2, 0, "serve sell order"]' -p mokemokecore@active
+cleos push action toycashcmnty selltoorder '["TOY", 2, 0, "sell token"]' -p mokemokecore@active
 
 cleos get table toycashcmnty TOY token
 cleos get table toycashcmnty TOY buyorder

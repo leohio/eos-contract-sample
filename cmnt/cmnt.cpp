@@ -618,6 +618,7 @@ void cmnt::acceptoffer( name manager, symbol_code sym, uint64_t offer_id ) {
     //     auto oldest_content = contents_table.get_index<name("bytimestamp")>().lower_bound(0);
     //     contents_table.erase( oldest_content );
     // }
+    // テーブル2つで解決　ひとつはindex 管理
 
     uint64_t now = current_time();
     uint64_t contents_id = contents_table.available_primary_key();
@@ -986,9 +987,12 @@ void cmnt::_update_pv_rate( symbol_code sym, uint64_t timestamp, asset new_offer
 
     auto& world_data = world_table.get( get_self().value );
 
-    float_t last_pv_rate = world_data.pvrate;
-    float_t pv_rate = (last_pv_rate * world_pv_count + new_offer_price.amount) / (world_pv_count + cmnty_pv_count);
-    // eosio_assert( std::isinf(pv_rate) == 0, "pv_rate is infinity" );
+    float_t pv_rate = 0;
+
+    if ( world_pv_count + cmnty_pv_count != 0 ) {
+        float_t last_pv_rate = world_data.pvrate;
+        pv_rate = (last_pv_rate * world_pv_count + new_offer_price.amount) / (world_pv_count + cmnty_pv_count);
+    }
 
     auto pv_rate_data = pv_rate_table.find( timestamp );
     if ( pv_rate_data == pv_rate_table.end() ) {
@@ -1117,7 +1121,7 @@ void cmnt::_sub_deposit( name owner, asset value ) {
     assert_non_negative_price( value );
 
     deposit_index deposit_table( get_self(), owner.value );
-    auto& deposit_data = deposit_table.get( symbol_code("EOS").raw(), "your balance data do not exist" );
+    auto deposit_data = deposit_table.get( symbol_code("EOS").raw(), "your balance data do not exist" );
 
     eosio_assert( deposit_data.balance >= value, "exceed the withdrawable amount" );
 
@@ -1129,10 +1133,11 @@ void cmnt::_sub_deposit( name owner, asset value ) {
         });
     }
 
-    auto total_deposit = total_deposit_table.get( symbol_code("EOS").raw(), "total deposit data do not exist" );
-    eosio_assert( total_deposit.balance >= value, "can not subtract more than total deposit" );
+    auto total_deposit = total_deposit_table.find( symbol_code("EOS").raw() );
+    eosio_assert( total_deposit != total_deposit_table.end(), "total deposit data do not exist" );
+    eosio_assert( total_deposit->balance >= value, "can not subtract more than total deposit" );
 
-    if ( total_deposit.balance == value ) {
+    if ( total_deposit->balance == value ) {
         total_deposit_table.erase( total_deposit );
     } else {
         total_deposit_table.modify( total_deposit, get_self(), [&]( auto& data ) {
@@ -1338,9 +1343,7 @@ extern "C" {
             switch( action ) {
                EOSIO_DISPATCH_HELPER( cmnt,
                    (create)
-                   // (destroy)
                    (issue)
-                   // (issueunlock)
                    (transferbyid)
                    (transfer)
                    (burnbyid)
@@ -1350,6 +1353,7 @@ extern "C" {
                    (addsellorder)
                    (issueandsell)
                    (buyfromorder)
+
                    // (buyandunlock)
                    // (sendandbuy)
 
