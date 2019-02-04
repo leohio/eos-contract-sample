@@ -1121,7 +1121,7 @@ void cmnt::_sub_deposit( name owner, asset value ) {
     assert_non_negative_price( value );
 
     deposit_index deposit_table( get_self(), owner.value );
-    auto deposit_data = deposit_table.get( symbol_code("EOS").raw(), "your balance data do not exist" );
+    auto& deposit_data = deposit_table.get( symbol_code("EOS").raw(), "your balance data do not exist" );
 
     eosio_assert( deposit_data.balance >= value, "exceed the withdrawable amount" );
 
@@ -1133,11 +1133,10 @@ void cmnt::_sub_deposit( name owner, asset value ) {
         });
     }
 
-    auto total_deposit = total_deposit_table.find( symbol_code("EOS").raw() );
-    eosio_assert( total_deposit != total_deposit_table.end(), "total deposit data do not exist" );
-    eosio_assert( total_deposit->balance >= value, "can not subtract more than total deposit" );
+    auto& total_deposit = total_deposit_table.get( symbol_code("EOS").raw(), "total deposit data do not exist" );
+    eosio_assert( total_deposit.balance >= value, "can not subtract more than total deposit" );
 
-    if ( total_deposit->balance == value ) {
+    if ( total_deposit.balance == value ) {
         total_deposit_table.erase( total_deposit );
     } else {
         total_deposit_table.modify( total_deposit, get_self(), [&]( auto& data ) {
@@ -1353,10 +1352,6 @@ extern "C" {
                    (addsellorder)
                    (issueandsell)
                    (buyfromorder)
-
-                   // (buyandunlock)
-                   // (sendandbuy)
-
                    (cancelsobyid)
                    (cancelsello)
                    (cancelsoburn)
