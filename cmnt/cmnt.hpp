@@ -69,6 +69,7 @@ class [[eosio::contract]] cmnt : public eosio::contract {
         [[eosio::action]] void     withdraw( name user, asset value, string memo );
         [[eosio::action]] void     setoffer( name provider, symbol_code sym, string uri, asset price );
         [[eosio::action]] void  acceptoffer( name manager, symbol_code sym, uint64_t offer_id );
+        [[eosio::action]] void  rejectoffer( name manager, symbol_code sym, uint64_t offer_id, string memo );
         [[eosio::action]] void  removeoffer( name provider, symbol_code sym, uint64_t offer_id );
         [[eosio::action]] void   addpvcount( uint64_t content_id, uint64_t pv_count );
         // [[eosio::action]] void resetpvcount( uint64_t content_id );

@@ -1,5 +1,5 @@
 {
-    "____comment": "This file was generated with eosio-abigen. DO NOT EDIT Tue Feb  5 06:41:46 2019",
+    "____comment": "This file was generated with eosio-abigen. DO NOT EDIT Tue Feb  5 14:23:27 2019",
     "version": "eosio::abi/1.0",
     "structs": [
         {
@@ -436,6 +436,28 @@
             ]
         },
         {
+            "name": "rejectoffer",
+            "base": "",
+            "fields": [
+                {
+                    "name": "manager",
+                    "type": "name"
+                },
+                {
+                    "name": "sym",
+                    "type": "symbol_code"
+                },
+                {
+                    "name": "offer_id",
+                    "type": "uint64"
+                },
+                {
+                    "name": "memo",
+                    "type": "string"
+                }
+            ]
+        },
+        {
             "name": "removeoffer",
             "base": "",
             "fields": [
@@ -724,6 +746,11 @@
         {
             "name": "refleshkey",
             "type": "refleshkey",
+            "ricardian_contract": ""
+        },
+        {
+            "name": "rejectoffer",
+            "type": "rejectoffer",
             "ricardian_contract": ""
         },
         {

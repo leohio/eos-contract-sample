@@ -444,6 +444,8 @@ void cmnt::cancelbobyid( name buyer, symbol_code sym, uint64_t order_id ) {
     _sub_buy_order( buyer, sym, order_id );
 }
 
+/// TODO: manager 権限を剥奪したいときは、 ratio を 0 にする
+/// そうしないと比率がおかしくなる。。
 void cmnt::setmanager( symbol_code sym, uint64_t manager_token_id, vector<uint64_t> manager_token_list, vector<uint64_t> ratio_list, uint64_t others_ratio ) {
     token_index token_table( get_self(), sym.raw() );
     auto& token_data_of_manager = token_table.get( manager_token_id, "token with id is not found" );
@@ -464,13 +466,8 @@ void cmnt::setmanager( symbol_code sym, uint64_t manager_token_id, vector<uint64
     for ( uint64_t i = 0; i != manager_list_length; ++i ) {
         auto& token_data = token_table.get( manager_token_list[i], "token with id is not found" );
 
-        eosio_assert( sum_of_ratio + ratio_list[i] > sum_of_ratio, "occur overflow" ); // check overflow
+        eosio_assert( sum_of_ratio + ratio_list[i] >= sum_of_ratio, "occur overflow" ); // check overflow
         sum_of_ratio += ratio_list[i];
-
-        auto community_data = community_table.find( manager_token_list[i] );
-        if ( community_data != community_table.end() ) {
-            community_table.erase( community_data );
-        }
     }
 
     eosio_assert( sum_of_ratio > 0, "sum of ratio must be positive" );
@@ -486,9 +483,15 @@ void cmnt::setmanager( symbol_code sym, uint64_t manager_token_id, vector<uint64
                 data.ratio = static_cast<float_t>(ratio_list[j]) / sum_of_ratio;
             });
         } else {
-            community_table.modify( community_data, get_self(), [&]( auto& data ) {
-                data.ratio += static_cast<float_t>(ratio_list[j]) / sum_of_ratio;
-            });
+            if (ratio_list[j] > 0) {
+                /// 書き換える
+                community_table.modify( community_data, get_self(), [&]( auto& data ) {
+                    data.ratio = static_cast<float_t>(ratio_list[j]) / sum_of_ratio;
+                });
+            } else {
+                community_table.erase( community_data );
+            }
+
         }
     }
 
@@ -598,7 +601,8 @@ void cmnt::acceptoffer( name manager, symbol_code sym, uint64_t offer_id ) {
     auto& currency_data = currency_table.get( sym.raw(), "token with symbol does not exist." );
 
     community_index community_table( get_self(), sym.raw() );
-    auto& community_data_of_manager = community_table.get( manager.value, "you are not community manager" );
+    uint64_t token_id = find_own_token( manager, sym );
+    auto& community_data_of_manager = community_table.get( token_id, "you are not community manager" );
 
     offer_index offer_list( get_self(), sym.raw() );
     auto& offer_data = offer_list.get( offer_id, "offer data do not exist" );
@@ -669,6 +673,28 @@ void cmnt::acceptoffer( name manager, symbol_code sym, uint64_t offer_id ) {
     }
 }
 
+void cmnt::rejectoffer( name manager, symbol_code sym, uint64_t offer_id, string memo ) {
+    require_auth( manager );
+
+    /// Ensure valid symbol
+    eosio_assert( sym.is_valid(), "invalid symbol name" );
+    auto& currency_data = currency_table.get( sym.raw(), "token with symbol does not exist." );
+
+    community_index community_table( get_self(), sym.raw() );
+    uint64_t token_id = find_own_token( manager, sym );
+    auto& community_data_of_manager = community_table.get( token_id, "you are not community manager" );
+
+    offer_index offer_list( get_self(), sym.raw() );
+    auto& offer_data = offer_list.get( offer_id, "offer data do not exist" );
+
+    name provider = offer_data.provider;
+
+    /// 拒否された offer はテーブルから消される
+    offer_list.erase( offer_data );
+
+    require_recipient( provider );
+}
+
 void cmnt::removeoffer( name provider, symbol_code sym, uint64_t offer_id ) {
     require_auth( provider );
 
@@ -678,7 +704,7 @@ void cmnt::removeoffer( name provider, symbol_code sym, uint64_t offer_id ) {
 
     offer_list.erase( offer_data );
 
-    string message = "executed as the inline action in acceptoffer of " + get_self().to_string();
+    string message = "executed as the inline action in removeoffer of " + get_self().to_string();
     _transfer_eos( provider, offer_data.price, message );
 }
 
@@ -1362,6 +1388,7 @@ extern "C" {
                    (withdraw)
                    (setoffer)
                    (acceptoffer)
+                   (rejectoffer)
                    (removeoffer)
                    (addpvcount)
 

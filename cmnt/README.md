@@ -135,4 +135,7 @@ cleos push action toycashcmnty setmanager '["TOY", 0, [0, 2], [10, 4], 2]' -p le
 
 # デポジットした EOS の引き出し
 cleos push action toycashcmnty withdraw '["leohioleohio", "0.0001 EOS", "withdraw"]' -p leohioleohio@active
+
+# offer を拒否する
+cleos push action toycashcmnty rejectoffer '["leohioleohio", "TOY", 0, "The reason why I rejected this offer is because of hogehoge"]' -p leohioleohio@active
 ```
