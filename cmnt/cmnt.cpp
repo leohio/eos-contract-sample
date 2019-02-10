@@ -472,12 +472,11 @@ void cmnt::setmanager( symbol_code sym, uint64_t manager_token_id, vector<uint64
 
     eosio_assert( sum_of_ratio > 0, "sum of ratio must be positive" );
 
-    uint64_t num_of_manager = 0;
+    uint64_t num_of_manager = currency_data.numofmanager;
     for ( uint64_t j = 0; j != manager_list_length; ++j ) {
         auto community_data = community_table.find( manager_token_list[j] );
         if ( community_data == community_table.end() ) {
             num_of_manager += 1;
-
             community_table.emplace( get_self(), [&]( auto& data ) {
                 data.manager = manager_token_list[j];
                 data.ratio = static_cast<float_t>(ratio_list[j]) / sum_of_ratio;
@@ -489,6 +488,7 @@ void cmnt::setmanager( symbol_code sym, uint64_t manager_token_id, vector<uint64
                     data.ratio = static_cast<float_t>(ratio_list[j]) / sum_of_ratio;
                 });
             } else {
+                num_of_manager -= 1;
                 community_table.erase( community_data );
             }
 
@@ -617,29 +617,12 @@ void cmnt::acceptoffer( name manager, symbol_code sym, uint64_t offer_id ) {
     /// 受け入れられた offer は content に昇格する
     offer_list.erase( offer_data );
 
-    /// TODO: コンテンツが増えてきたら、古いものから消去する
-    // if ( contents_table.size() > 5 ) { // size メンバは存在しないので別の方法を探す
-    //     auto oldest_content = contents_table.get_index<name("bytimestamp")>().lower_bound(0);
-    //     contents_table.erase( oldest_content );
-    // }
-    // テーブル2つで解決　ひとつはindex 管理
-
     uint64_t now = current_time();
-    uint64_t contents_id = contents_table.available_primary_key();
-    contents_table.emplace( manager, [&]( auto& data ) {
-        data.id = contents_id;
-        data.sym = sym;
-        data.price = price;
-        data.provider = provider;
-        data.uri = uri;
-        data.pvcount = 0;
-        data.accepted = now;
-        data.active = 1;
-    });
+
+    _add_contents( manager, sym, price, provider, uri, now );
+    _update_pv_rate( sym, now, price );
 
     require_recipient( provider );
-
-    _update_pv_rate( sym, now, price );
 
     if ( price.amount > 0 ) {
         /// 割り切れないときや、DEX に出しているときや、
@@ -754,9 +737,9 @@ void cmnt::addpvcount( uint64_t contents_id, uint64_t pv_count ) {
         });
     }
 
-
+    uint64_t a_week = 7ll*24*60*60*1000000;
     currency_table.modify( currency_data, get_self(), [&]( auto& data ) {
-        data.pvcount = get_cmnty_pv_count( sym );
+        data.pvcount = get_cmnty_pv_count( sym, now - a_week );
     });
 
     /// add world pv count
@@ -953,6 +936,9 @@ void cmnt::_add_sell_order( name from, symbol_code sym, uint64_t token_id, asset
 
     assert_non_negative_price( price );
 
+    int64_t minimum_price = get_minimum_price( sym );
+    eosio_assert( price.amount >= minimum_price, "price is lower than minimum price" );
+
     _transfer_token( from, get_self(), sym, token_id );
 
     sell_order_index sell_order_table( get_self(), sym.raw() );
@@ -977,7 +963,10 @@ uint64_t cmnt::_add_buy_order( name from, symbol_code sym, asset price ) {
 
     auto& currency_data = currency_table.get( sym.raw(), "token with symbol do not exists" );
 
-    eosio_assert( price >= currency_data.minimumprice, "price is lower than minimum price" );
+    assert_non_negative_price( price );
+
+    int64_t minimum_price = get_minimum_price( sym );
+    eosio_assert( price.amount >= minimum_price, "price is lower than minimum price" );
 
     _sub_deposit( from, price );
 
@@ -1038,22 +1027,97 @@ void cmnt::_update_pv_rate( symbol_code sym, uint64_t timestamp, asset new_offer
     });
 }
 
-void cmnt::_update_minimum_price( symbol_code sym ) {
+int64_t cmnt::get_cmnty_offer_reward( symbol_code sym, uint64_t ago ) {
+    auto table = contents_table.get_index<name("bytime")>();
+
+    // table は accepted の小さい順に並んでいるので、 ago 以降であるものを見れば良い
+    auto it = table.lower_bound( ago );
+
+    int64_t total_offer_reward = 0;
+
+    for (; it != table.end(); ++it ) {
+        if ( it->sym == sym ) { // 該当する symbol の offer のみを合計する
+            eosio_assert( total_offer_reward + it->price.amount >= total_offer_reward, "overflow occurred" );
+            total_offer_reward += it->price.amount;
+        }
+    }
+
+    return total_offer_reward;
+}
+
+int64_t cmnt::get_minimum_price( symbol_code sym ) {
     auto& currency_data = currency_table.get( sym.raw(), "this currency does not exist" );
     uint64_t cmnty_pv_count = currency_data.pvcount;
 
     float_t last_pv_rate = 0;
-    auto latest_pv_rate_data = pv_rate_table.rend();
-    if ( latest_pv_rate_data != pv_rate_table.rbegin() ) {
+    auto latest_pv_rate_data = pv_rate_table.rbegin(); // 最後の要素を取得する
+    if ( latest_pv_rate_data != pv_rate_table.rend() ) {
         last_pv_rate = latest_pv_rate_data->rate;
     }
 
+    // now はマイクロミリ秒単位
+    uint64_t now = current_time();
+    // 1か月前までの offer の報酬合計
+    uint64_t a_month = 30ll*24*60*60*1000000;
+    int64_t total_offer_reward_in_a_month = get_cmnty_offer_reward( sym, now - a_month );
+    // 1週間前までの PV の合計
+    uint64_t a_week = 7ll*24*60*60*1000000;
+    uint64_t total_pv_count_in_a_week = get_cmnty_pv_count( sym, now - a_week );
+
+    float_t others_ratio = currency_data.othersratio;
+    uint64_t number_of_others = currency_data.supply.amount - currency_data.numofmanager;
+
+    uint64_t expected_offer_in_a_year = total_offer_reward_in_a_month * 12 * others_ratio / number_of_others;
+    uint64_t expected_pv_in_a_year = total_pv_count_in_a_week * 52 * last_pv_rate;
+
     /// TODO: overflow 対策が必要?
-    int64_t minimum_price = cmnty_pv_count * last_pv_rate;
+    int64_t minimum_price = expected_offer_in_a_year + expected_pv_in_a_year;
 
     currency_table.modify( currency_data, get_self(), [&]( auto& data ) {
         data.minimumprice = asset{ minimum_price, symbol("EOS", 4) };
     });
+
+    return minimum_price;
+}
+
+void cmnt::_add_contents( name ram_payer, symbol_code sym, asset price, name provider, string uri, uint64_t timestamp ) {
+    assert_non_negative_price( price );
+
+    // uint64_t new_contents_id = contents_table.available_primary_key();
+    // contents_table.emplace( ram_payer, [&]( auto& data ) {
+    //     data.id = new_contents_id;
+    //     data.sym = sym;
+    //     data.price = price;
+    //     data.provider = provider;
+    //     data.uri = uri;
+    //     data.pvcount = 0;
+    //     data.accepted = timestamp;
+    //     data.active = 1;
+    // });
+
+    auto table = contents_table.get_index<name("bytime")>();
+
+    // reverse iterator の最初の row を取得
+    auto rit = table.rbegin();
+
+    // rit を5つ進める
+    uint8_t counter = 0;
+    bool found = false;
+    for (; rit != table.rend(); ++rit ) {
+        if ( rit->sym == sym ) {
+            counter++;
+            if ( counter == 5 ) {
+                found = true;
+                break;
+            }
+        }
+    }
+
+    // contents ID が5つ前のものを消去する
+    if ( found ) {
+        auto& contents_data = *rit;
+        contents_table.erase( contents_data );
+    }
 }
 
 void cmnt::_add_balance( name owner, asset quantity, name ram_payer ) {
@@ -1281,18 +1345,20 @@ uint64_t cmnt::find_pvdata_by_uri( symbol_code sym, string uri ) {
     return uri_id;
 }
 
-uint64_t cmnt::get_cmnty_pv_count( symbol_code sym ) {
-    uint64_t cmnty_pv_count = 0;
-
+uint64_t cmnt::get_cmnty_pv_count( symbol_code sym, uint64_t ago ) {
     cmnty_pv_count_index cmnty_pv_count_table( get_self(), sym.raw() );
 
-    /// あるいは過去30日分だけを取り出す
-    // auto it = cmnty_pv_count_table.lower_bound( static_cast<uint64_t>( current_time() - 30*24*60*60 ) );
-    auto it = cmnty_pv_count_table.lower_bound( 0 );
+    // table は timestamp の小さい順に並んでいるので、 ago 以降であるものを見れば良い
+    auto it = cmnty_pv_count_table.lower_bound( ago );
+
+    uint64_t total_pv_count = 0;
+
     for (; it != cmnty_pv_count_table.end(); ++it ) {
-        cmnty_pv_count += it->count;
+        eosio_assert( total_pv_count + it->count >= total_pv_count, "overflow occurred" );
+        total_pv_count += it->count;
     }
-    return cmnty_pv_count;
+
+    return total_pv_count;
 }
 
 uint64_t cmnt::get_world_pv_count() {

@@ -291,7 +291,8 @@ class [[eosio::contract]] cmnt : public eosio::contract {
         uint64_t _add_buy_order( name from, symbol_code sym, asset price );
         void _sub_buy_order( name to, symbol_code sym, uint64_t order_id );
         void _update_pv_rate( symbol_code sym, uint64_t timestamp, asset new_offer_price );
-        void _update_minimum_price( symbol_code sym );
+        int64_t get_minimum_price( symbol_code sym );
+        void _add_contents( name ram_payer, symbol_code sym, asset price, name provider, string uri, uint64_t timestamp );
         void _add_balance( name owner, asset quantity, name ram_payer );
         void _sub_balance( name owner, asset quantity );
         void _add_supply( asset quantity );
@@ -312,8 +313,10 @@ class [[eosio::contract]] cmnt : public eosio::contract {
         uint64_t find_own_sell_order( name owner, symbol_code sym );
         uint64_t find_pvdata_by_uri( symbol_code sym, string uri );
         // uint64_t find_offer_by_uri( symbol_code sym, string uri );
-        uint64_t get_cmnty_pv_count( symbol_code sym );
         uint64_t get_world_pv_count();
+        int64_t get_cmnty_offer_reward( symbol_code sym, uint64_t ago );
+        uint64_t get_cmnty_pv_count( symbol_code sym, uint64_t ago );
+
 
         /// Others
 
