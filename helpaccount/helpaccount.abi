@@ -1,4 +1,5 @@
 {
+    "____comment": "This file was generated with eosio-abigen. DO NOT EDIT Mon Feb 11 18:08:31 2019",
     "version": "eosio::abi/1.0",
     "structs": [
         {
@@ -14,17 +15,67 @@
                     "type": "uint32"
                 }
             ]
+        },
+        {
+            "name": "message",
+            "base": "",
+            "fields": [
+                {
+                    "name": "memo",
+                    "type": "string"
+                }
+            ]
+        },
+        {
+            "name": "updateauth",
+            "base": "",
+            "fields": [
+                {
+                    "name": "to",
+                    "type": "name"
+                },
+                {
+                    "name": "to_permission",
+                    "type": "name"
+                },
+                {
+                    "name": "parent_permission",
+                    "type": "name"
+                },
+                {
+                    "name": "key",
+                    "type": "public_key"
+                },
+                {
+                    "name": "target",
+                    "type": "name"
+                },
+                {
+                    "name": "target_permission",
+                    "type": "name"
+                }
+            ]
         }
     ],
+    "types": [],
     "actions": [
         {
             "name": "buyram",
             "type": "buyram",
             "ricardian_contract": ""
+        },
+        {
+            "name": "message",
+            "type": "message",
+            "ricardian_contract": ""
+        },
+        {
+            "name": "updateauth",
+            "type": "updateauth",
+            "ricardian_contract": ""
         }
     ],
     "tables": [],
-    "types": [],
     "ricardian_clauses": [],
     "abi_extensions": []
 }
