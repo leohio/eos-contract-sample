@@ -32,11 +32,12 @@ void cmnty::create( name issuer, symbol_code sym ) {
 //     eosio_assert( sym.is_valid(), "invalid symbol name" );
 //
 //     /// Check if currency with symbol already exists
+//     currency_index currency_table( get_self(), sym.raw() );
 //     auto& currency_data = currency_table.get( sym.raw(), "token with symbol does not exists" );
 //     eosio_assert( currency_data.supply == asset{ 0, symbol(sym, 0) }, "who has this token exists except for manager" );
 //
 //     /// Delete currency
-//     currency_table.erase( currency_data );
+//     // currency_table.erase( currency_data );
 //
 //     /// Delete manager
 //     community_manager_index community_manager_table( get_self(), sym.raw() );
@@ -730,7 +731,7 @@ void cmnty::addpvcount( symbol_code sym, uint64_t contents_id, uint64_t pv_count
     //         data.count = pv_count;
     //     });
     // } else {
-    //     pv_count_table.modify( pv_count_data, get_self(), [&]( auto& data ) {
+    //     pv_count_table.modify( pv_count_data, get_selmokemokecoref(), [&]( auto& data ) {
     //         data.count += pv_count;
     //     });
     // }
@@ -907,9 +908,9 @@ void cmnty::_burn_token( name owner, symbol_code sym, uint64_t token_id ) {
     token_index token_table( get_self(), sym.raw() );
     auto& token_data = token_table.get( token_id, "token with id does not exist" );
 
-    // community_manager_index community_manager_table( get_self(), sym.raw() );
-    // auto community_data = community_manager_table.find( token_id );
-    // eosio_assert( community_data == community_manager_table.end(), "manager should not delete my token" );
+    community_manager_index community_manager_table( get_self(), sym.raw() );
+    auto community_data = community_manager_table.find( token_id );
+    eosio_assert( community_data == community_manager_table.end(), "manager should not delete my token" );
 
     /// Remove token from tokens table
     token_table.erase( token_data );
