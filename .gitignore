@@ -22,6 +22,12 @@ cmnt/compile.sh
 cmnt/set_contract.sh
 cmnt/nodeos.log
 
+# cmnty
+
+cmnty/compile.sh
+cmnty/set_contract.sh
+cmnty/nodeos.log
+
 # helpaccount
 
 helpaccount/compile.sh
