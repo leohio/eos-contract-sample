@@ -32,19 +32,16 @@ void cmnty::create( name issuer, symbol_code sym ) {
 //     eosio_assert( sym.is_valid(), "invalid symbol name" );
 //
 //     /// Check if currency with symbol already exists
-//     auto currency_data = currency_table.find( sym.raw() );
-//     eosio_assert( currency_data != currency_table.end(), "token with symbol does not exists" );
-//     eosio_assert( currency_data->supply == asset{ 0, symbol(sym, 0) }, "who has this token exists" );
+//     auto& currency_data = currency_table.get( sym.raw(), "token with symbol does not exists" );
+//     eosio_assert( currency_data.supply == asset{ 0, symbol(sym, 0) }, "who has this token exists except for manager" );
 //
 //     /// Delete currency
 //     currency_table.erase( currency_data );
 //
-//     /// Delete community
+//     /// Delete manager
 //     community_manager_index community_manager_table( get_self(), sym.raw() );
-//     auto it = community_manager_table.begin();
-//     for (; it != community_manager_table.end();) {
-//         community_manager_table.erase( it++ );
-//     }
+//     auto& community_manager_data = community_manager_table.get( 0, "token#0 does not exist" );
+//     community_manager_table.erase( community_manager_data );
 // }
 
 void cmnty::issue( name user, asset quantity, string memo ) {
@@ -59,6 +56,7 @@ void cmnty::issue( name user, asset quantity, string memo ) {
 
     /// Ensure currency has been created
     symbol_code sym = quantity.symbol.code();
+    currency_index currency_table( get_self(), sym.raw() );
     auto currency_data = currency_table.get( sym.raw(), "token with symbol does not exist. create token before issue" );
     eosio_assert( quantity.symbol == currency_data.supply.symbol, "symbol code or precision mismatch" );
 
@@ -161,6 +159,7 @@ void cmnty::burn( name owner, asset quantity ) {
 
     /// Ensure currency has been created
     symbol_code sym = quantity.symbol.code();
+    currency_index currency_table( get_self(), sym.raw() );
     auto& currency_data = currency_table.get( sym.raw(), "token with symbol does not exist" );
 
     uint64_t token_id;
@@ -213,6 +212,7 @@ void cmnty::addsellobyid( symbol_code sym, uint64_t token_id, asset price ) {
     require_auth( seller );
     eosio_assert( seller != get_self(), "contract accmount should not sell token" );
 
+    currency_index currency_table( get_self(), sym.raw() );
     auto& currency_data = currency_table.get( sym.raw(), "token with symbol does not exist." );
     // eosio_assert( price >= currency_data->minimumprice, "price is lower than minimum price" );
 
@@ -227,6 +227,8 @@ void cmnty::addsellorder( name seller, asset quantity, asset price ) {
 
     symbol_code sym = quantity.symbol.code();
     eosio_assert( sym.is_valid(), "invalid symbol name" );
+
+    currency_index currency_table( get_self(), sym.raw() );
     auto& currency_data = currency_table.get( sym.raw(), "token with symbol does not exist." );
 
     assert_non_negative_price( price );
@@ -244,6 +246,8 @@ void cmnty::addsellorder( name seller, asset quantity, asset price ) {
 void cmnty::issueandsell( asset quantity, asset price, string memo ) {
     symbol_code sym = quantity.symbol.code();
     eosio_assert( sym.is_valid(), "invalid symbol name" );
+
+    currency_index currency_table( get_self(), sym.raw() );
     auto& currency_data = currency_table.get( sym.raw(), "token with symbol does not exist. create token before issue" );
 
     // Check memo size
@@ -371,6 +375,7 @@ void cmnty::cancelsello( name seller, asset quantity ) {
 
     /// Ensure currency has been created
     symbol_code sym = quantity.symbol.code();
+    currency_index currency_table( get_self(), sym.raw() );
     auto& currency_data = currency_table.get( sym.raw(), "token with symbol does not exist" );
 
     uint64_t token_id;
@@ -389,6 +394,7 @@ void cmnty::cancelsoburn( name seller, asset quantity ) {
 
     /// Ensure currency has been created
     symbol_code sym = quantity.symbol.code();
+    currency_index currency_table( get_self(), sym.raw() );
     auto& currency_data = currency_table.get( sym.raw(), "token with symbol does not exist" );
 
     uint64_t token_id;
@@ -460,6 +466,7 @@ void cmnty::setmanager( symbol_code sym, uint64_t manager_token_id, vector<uint6
     uint64_t ratio_list_length = ratio_list.size();
     eosio_assert( manager_list_length == ratio_list_length, "list size is invalid" );
 
+    currency_index currency_table( get_self(), sym.raw() );
     auto& currency_data = currency_table.get( sym.raw(), "currency with symbol does not exist" );
 
     float_t sum_of_ratio = others_ratio;
@@ -565,6 +572,7 @@ void cmnty::setoffer( name provider, symbol_code sym, string uri, asset price ) 
 
     /// Ensure valid symbol
     eosio_assert( sym.is_valid(), "invalid symbol name" );
+    currency_index currency_table( get_self(), sym.raw() );
     auto& currency_data = currency_table.get( sym.raw(), "token with symbol does not exist." );
 
     eosio_assert( uri.size() <= 256, "uri has more than 256 bytes" );
@@ -596,6 +604,7 @@ void cmnty::acceptoffer( name manager, symbol_code sym, uint64_t offer_id ) {
 
     /// Ensure valid symbol
     eosio_assert( sym.is_valid(), "invalid symbol name" );
+    currency_index currency_table( get_self(), sym.raw() );
     auto& currency_data = currency_table.get( sym.raw(), "token with symbol does not exist." );
 
     community_manager_index community_manager_table( get_self(), sym.raw() );
@@ -659,6 +668,7 @@ void cmnty::rejectoffer( name manager, symbol_code sym, uint64_t offer_id, strin
 
     /// Ensure valid symbol
     eosio_assert( sym.is_valid(), "invalid symbol name" );
+    currency_index currency_table( get_self(), sym.raw() );
     auto& currency_data = currency_table.get( sym.raw(), "token with symbol does not exist." );
 
     community_manager_index community_manager_table( get_self(), sym.raw() );
@@ -689,13 +699,18 @@ void cmnty::removeoffer( name provider, symbol_code sym, uint64_t offer_id ) {
     _transfer_eos( provider, offer_data.price, message );
 }
 
-void cmnty::addpvcount( uint64_t contents_id, uint64_t pv_count ) {
+void cmnty::addpvcount( symbol_code sym, uint64_t contents_id, uint64_t pv_count ) {
     /// コントラクトアカウントのみが呼び出せる
     require_auth( get_self() );
 
-    /// すでに指定した uri に関する pv のデータがあることを確認
+    /// すでに指定した contents に関する pv のデータがあることを確認
+    contents_index contents_table( get_self(), sym.raw() );
     auto& contents_data = contents_table.get( contents_id, "this contents is not exist in the contents table" );
-    // eosio_assert( contents_data.active != 0, "this contents is not active" );
+    eosio_assert( contents_data.active != 0, "this contents is not active" );
+
+    contents_table.modify( contents_data, get_self(), [&]( auto& data ) {
+        data.pvcount += pv_count;
+    });
 
     /// get block timestamp
     uint64_t now = current_time();
@@ -720,12 +735,9 @@ void cmnty::addpvcount( uint64_t contents_id, uint64_t pv_count ) {
     //     });
     // }
 
-    contents_table.modify( contents_data, get_self(), [&]( auto& data ) {
-        data.pvcount += pv_count;
-    });
-
     /// add community pv count
-    symbol_code sym = contents_data.sym;
+    // symbol_code sym = contents_data.sym;
+    currency_index currency_table( get_self(), sym.raw() );
     auto& currency_data = currency_table.get( sym.raw(), "this currency does not exist" );
 
     // cmnty_pv_count_index cmnty_pv_count_table( get_self(), sym.raw() );
@@ -812,7 +824,9 @@ void cmnty::addpvcount( uint64_t contents_id, uint64_t pv_count ) {
 
 void cmnty::_create_token( name issuer, symbol_code sym ) {
     /// Check if currency with symbol already exists
-    auto& currency_data = currency_table.get( sym.raw(), "token with symbol already exists" );
+    currency_index currency_table( get_self(), sym.raw() );
+    auto currency_data = currency_table.find( sym.raw() );
+    eosio_assert( currency_data == currency_table.end(), "token with symbol already exists" );
 
     uint64_t now = current_time();
     /// Create new currency
@@ -841,18 +855,19 @@ void cmnty::_create_token( name issuer, symbol_code sym ) {
 /// subkey を登録しないでトークン発行
 uint64_t cmnty::_issue_token( name to, symbol_code sym ) {
     /// Ensure currency has been created
+    currency_index currency_table( get_self(), sym.raw() );
     auto& currency_data = currency_table.get( sym.raw(), "token with symbol does not exist. create token before issue" );
 
     name issuer = currency_data.issuer;
     asset quantity( 1, symbol(sym, 0) );
 
     _add_supply( quantity );
-    _add_balance( to, quantity, issuer );
+    _add_balance( to, quantity, get_self() );
     // _increment_member( to, sym );
 
     token_index token_table( get_self(), sym.raw() );
     uint64_t token_id = token_table.available_primary_key();
-    token_table.emplace( issuer, [&]( auto& data ) {
+    token_table.emplace( get_self(), [&]( auto& data ) {
         data.id = token_id;
         // subkey は初期値のまま
         data.owner = to;
@@ -892,8 +907,9 @@ void cmnty::_burn_token( name owner, symbol_code sym, uint64_t token_id ) {
     token_index token_table( get_self(), sym.raw() );
     auto& token_data = token_table.get( token_id, "token with id does not exist" );
 
-    community_manager_index community_manager_table( get_self(), sym.raw() );
-    auto& community_data = community_manager_table.get( token_id, "manager should not delete my token" );
+    // community_manager_index community_manager_table( get_self(), sym.raw() );
+    // auto community_data = community_manager_table.find( token_id );
+    // eosio_assert( community_data == community_manager_table.end(), "manager should not delete my token" );
 
     /// Remove token from tokens table
     token_table.erase( token_data );
@@ -933,6 +949,7 @@ void cmnty::_lock_token( symbol_code sym, uint64_t token_id ) {
 }
 
 void cmnty::_add_sell_order( name from, symbol_code sym, uint64_t token_id, asset price ) {
+    currency_index currency_table( get_self(), sym.raw() );
     auto& currency_data = currency_table.get( sym.raw(), "token with symbol do not exists" );
 
     token_index token_table( get_self(), sym.raw() );
@@ -965,6 +982,7 @@ void cmnty::_sub_sell_order( name to, symbol_code sym, uint64_t token_id ) {
 uint64_t cmnty::_add_buy_order( name from, symbol_code sym, asset price ) {
     assert_non_negative_price( price );
 
+    currency_index currency_table( get_self(), sym.raw() );
     auto& currency_data = currency_table.get( sym.raw(), "token with symbol do not exists" );
 
     assert_non_negative_price( price );
@@ -999,6 +1017,7 @@ void cmnty::_update_pv_rate( symbol_code sym, uint64_t timestamp, asset new_offe
 
     eosio_assert( timestamp != 0, "invalid timestamp" );
 
+    currency_index currency_table( get_self(), sym.raw() );
     auto& currency_data = currency_table.get( sym.raw(), "this currency does not exist" );
     uint64_t cmnty_pv_count = currency_data.pvcount;
 
@@ -1030,6 +1049,7 @@ void cmnty::_update_pv_rate( symbol_code sym, uint64_t timestamp, asset new_offe
 }
 
 int64_t cmnty::get_cmnty_offer_reward( symbol_code sym, uint64_t ago ) {
+    contents_index contents_table( get_self(), sym.raw() );
     auto table = contents_table.get_index<name("bytime")>();
 
     // table は accepted の小さい順に並んでいるので、 ago 以降であるものを見れば良い
@@ -1038,16 +1058,17 @@ int64_t cmnty::get_cmnty_offer_reward( symbol_code sym, uint64_t ago ) {
     int64_t total_offer_reward = 0;
 
     for (; it != table.end(); ++it ) {
-        if ( it->sym == sym ) { // 該当する symbol の offer のみを合計する
-            eosio_assert( total_offer_reward + it->price.amount >= total_offer_reward, "overflow occurred" );
-            total_offer_reward += it->price.amount;
-        }
+        // if ( it->sym == sym ) { // 該当する symbol の offer のみを合計する
+        eosio_assert( total_offer_reward + it->price.amount >= total_offer_reward, "overflow occurred" );
+        total_offer_reward += it->price.amount;
+        // }
     }
 
     return total_offer_reward;
 }
 
 int64_t cmnty::get_minimum_price( symbol_code sym ) {
+    currency_index currency_table( get_self(), sym.raw() );
     auto& currency_data = currency_table.get( sym.raw(), "this currency does not exist" );
     uint64_t cmnty_pv_count = currency_data.pvcount;
 
@@ -1093,17 +1114,18 @@ int64_t cmnty::get_minimum_price( symbol_code sym ) {
 void cmnty::_add_contents( name ram_payer, symbol_code sym, asset price, name provider, string uri, uint64_t timestamp ) {
     assert_non_negative_price( price );
 
-    // uint64_t new_contents_id = contents_table.available_primary_key();
-    // contents_table.emplace( ram_payer, [&]( auto& data ) {
-    //     data.id = new_contents_id;
-    //     data.sym = sym;
-    //     data.price = price;
-    //     data.provider = provider;
-    //     data.uri = uri;
-    //     data.pvcount = 0;
-    //     data.accepted = timestamp;
-    //     data.active = 1;
-    // });
+    contents_index contents_table( get_self(), sym.raw() );
+    uint64_t new_contents_id = contents_table.available_primary_key();
+    contents_table.emplace( ram_payer, [&]( auto& data ) {
+        data.id = new_contents_id;
+        // data.sym = sym;
+        data.price = price;
+        data.provider = provider;
+        data.uri = uri;
+        data.pvcount = 0;
+        data.accepted = timestamp;
+        data.active = 1;
+    });
 
     auto table = contents_table.get_index<name("bytime")>();
 
@@ -1114,13 +1136,13 @@ void cmnty::_add_contents( name ram_payer, symbol_code sym, asset price, name pr
     uint8_t counter = 0;
     bool found = false;
     for (; rit != table.rend(); ++rit ) {
-        if ( rit->sym == sym ) {
-            counter++;
-            if ( counter == 5 ) {
-                found = true;
-                break;
-            }
+        // if ( rit->sym == sym ) {
+        counter++;
+        if ( counter == 5 ) {
+            found = true;
+            break;
         }
+        // }
     }
 
     // contents ID が5つ前のものを消去する
@@ -1168,6 +1190,7 @@ void cmnty::_add_supply( asset quantity ) {
 
     symbol_code sym = quantity.symbol.code();
 
+    currency_index currency_table( get_self(), sym.raw() );
     auto& currency_data = currency_table.get( sym.raw(), "token with symbol does not exist." );
 
     currency_table.modify( currency_data, get_self(), [&]( auto& data ) {
@@ -1180,6 +1203,7 @@ void cmnty::_sub_supply( asset quantity ) {
 
     symbol_code sym = quantity.symbol.code();
 
+    currency_index currency_table( get_self(), sym.raw() );
     auto& currency_data = currency_table.get( sym.raw(), "token with symbol does not exist." );
     eosio_assert( currency_data.supply >= quantity, "exceed the withdrawable amount" );
 
@@ -1334,8 +1358,12 @@ uint64_t cmnty::find_pvdata_by_uri( symbol_code sym, string uri ) {
     uint64_t uri_id = 0;
 
     /// uri でテーブルを検索
+    currency_index currency_table( get_self(), sym.raw() );
     auto& currency_data = currency_table.get( sym.raw(), "token with symbol does not exist." );
-    for ( auto it = contents_table.begin(); it != contents_table.end(); ++it ) {
+
+    contents_index contents_table( get_self(), sym.raw() );
+    auto it = contents_table.begin();
+    for (; it != contents_table.end(); ++it ) {
         if ( it->uri == uri ) {
             uri_id = it->id;
             found = true;
@@ -1435,6 +1463,7 @@ extern "C" {
             switch( action ) {
                EOSIO_DISPATCH_HELPER( cmnty,
                    (create)
+                   // (destroy)
                    (issue)
                    (transferbyid)
                    (transfer)

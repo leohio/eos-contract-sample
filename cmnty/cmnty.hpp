@@ -16,13 +16,11 @@ class [[eosio::contract]] cmnty : public eosio::contract {
         cmnty( name receiver, name code, datastream<const char*> ds ):
     	    contract::contract( receiver, code, ds ),
             total_deposit_table( receiver, receiver.value ),
-            global_table( receiver, receiver.value ),
-            currency_table( receiver, receiver.value ),
-            contents_table( receiver, receiver.value )
+            global_table( receiver, receiver.value )
         {
             auto global_data = global_table.find( receiver.value );
-            uint64_t now = current_time();
             if ( global_data == global_table.end() ) {
+                uint64_t now = current_time();
                 global_table.emplace( get_self(), [&]( auto& data ) {
                     data.self = get_self();
                     data.timestamp = now;
@@ -64,7 +62,7 @@ class [[eosio::contract]] cmnty : public eosio::contract {
         [[eosio::action]] void  acceptoffer( name manager, symbol_code sym, uint64_t offer_id );
         [[eosio::action]] void  rejectoffer( name manager, symbol_code sym, uint64_t offer_id, string memo );
         [[eosio::action]] void  removeoffer( name provider, symbol_code sym, uint64_t offer_id );
-        [[eosio::action]] void   addpvcount( uint64_t content_id, uint64_t pv_count );
+        [[eosio::action]] void   addpvcount( symbol_code sym, uint64_t content_id, uint64_t pv_count );
         // [[eosio::action]] void resetpvcount( uint64_t content_id );
         // [[eosio::action]] void  stopcontent( name manager, uint64_t content_id );
         // [[eosio::action]] void startcontent( name manager, uint64_t content_id );
@@ -169,7 +167,7 @@ class [[eosio::contract]] cmnty : public eosio::contract {
 
         struct [[eosio::table]] content {
             uint64_t id;
-            symbol_code sym;
+            // symbol_code sym;
             asset price;
             name provider;
             string uri;
@@ -178,7 +176,7 @@ class [[eosio::contract]] cmnty : public eosio::contract {
             uint8_t active;
 
             uint64_t primary_key() const { return id; }
-            uint64_t get_symbol() const { return sym.raw(); }
+            // uint64_t get_symbol() const { return sym.raw(); }
             asset get_price() const { return price; }
             string get_uri() const { return uri; }
             uint64_t get_pvcount() const { return pvcount; }
@@ -240,17 +238,16 @@ class [[eosio::contract]] cmnty : public eosio::contract {
 
         using offer_index = eosio::multi_index< name("offer"), offer >;
 
-        using content_index = eosio::multi_index< name("contents"), content,
-            indexed_by< name("bytime"), const_mem_fun<content, uint64_t, &content::get_accepted> >,
-            indexed_by< name("bysymbol"), const_mem_fun<content, uint64_t, &content::get_symbol> > >;
+        using contents_index = eosio::multi_index< name("contents"), content,
+            indexed_by< name("bytime"), const_mem_fun<content, uint64_t, &content::get_accepted> > >;
 
         // using pv_count_index = eosio::multi_index< name("contentspv"), pvcount >;
-        //
+
         // using cmnty_pv_count_index = eosio::multi_index< name("communitypv"), pvcount >;
-        //
+
         // using global_pv_count_index = eosio::multi_index< name("globalpv"), pvcount >;
 
-        using pv_rate_index = eosio::multi_index< name("pvrate"), pvrate >;
+        // using pv_rate_index = eosio::multi_index< name("pvrate"), pvrate >;
 
     private:
         /**
@@ -259,9 +256,9 @@ class [[eosio::contract]] cmnty : public eosio::contract {
 
         total_deposit_index total_deposit_table;
         global_index global_table;
-        currency_index currency_table;
+        // currency_index currency_table;
         // buy_order_index buy_order_table;
-        content_index contents_table;
+        // contents_index contents_table;
         // global_pv_count_index global_pv_count_table;
         // pv_rate_index pv_rate_table;
 

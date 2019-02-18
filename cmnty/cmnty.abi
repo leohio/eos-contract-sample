@@ -1,5 +1,5 @@
 {
-    "____comment": "This file was generated with eosio-abigen. DO NOT EDIT Mon Feb 18 15:26:51 2019",
+    "____comment": "This file was generated with eosio-abigen. DO NOT EDIT Mon Feb 18 16:23:42 2019",
     "version": "eosio::abi/1.0",
     "structs": [
         {
@@ -52,6 +52,10 @@
             "name": "addpvcount",
             "base": "",
             "fields": [
+                {
+                    "name": "sym",
+                    "type": "symbol_code"
+                },
                 {
                     "name": "content_id",
                     "type": "uint64"
@@ -229,10 +233,6 @@
                 {
                     "name": "id",
                     "type": "uint64"
-                },
-                {
-                    "name": "sym",
-                    "type": "symbol_code"
                 },
                 {
                     "name": "price",
