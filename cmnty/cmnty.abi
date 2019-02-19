@@ -1,5 +1,5 @@
 {
-    "____comment": "This file was generated with eosio-abigen. DO NOT EDIT Mon Feb 18 17:11:55 2019",
+    "____comment": "This file was generated with eosio-abigen. DO NOT EDIT Tue Feb 19 10:20:09 2019",
     "version": "eosio::abi/1.0",
     "structs": [
         {
@@ -280,7 +280,7 @@
             "fields": [
                 {
                     "name": "supply",
-                    "type": "asset"
+                    "type": "uint64"
                 },
                 {
                     "name": "issuer",
@@ -291,7 +291,7 @@
                     "type": "uint64"
                 },
                 {
-                    "name": "minimumprice",
+                    "name": "borderprice",
                     "type": "asset"
                 },
                 {
@@ -299,12 +299,26 @@
                     "type": "uint64"
                 },
                 {
+                    "name": "pvcount",
+                    "type": "uint64"
+                },
+                {
                     "name": "othersratio",
                     "type": "float_t"
                 },
                 {
-                    "name": "pvcount",
-                    "type": "uint64"
+                    "name": "active",
+                    "type": "uint8"
+                }
+            ]
+        },
+        {
+            "name": "destroy",
+            "base": "",
+            "fields": [
+                {
+                    "name": "sym",
+                    "type": "symbol_code"
                 }
             ]
         },
@@ -313,11 +327,11 @@
             "base": "",
             "fields": [
                 {
-                    "name": "self",
-                    "type": "name"
+                    "name": "last_modified",
+                    "type": "uint64"
                 },
                 {
-                    "name": "timestamp",
+                    "name": "pvcount",
                     "type": "uint64"
                 },
                 {
@@ -325,8 +339,8 @@
                     "type": "float_t"
                 },
                 {
-                    "name": "pvcount",
-                    "type": "uint64"
+                    "name": "active",
+                    "type": "uint8"
                 }
             ]
         },
@@ -358,6 +372,28 @@
                 },
                 {
                     "name": "price",
+                    "type": "asset"
+                },
+                {
+                    "name": "memo",
+                    "type": "string"
+                }
+            ]
+        },
+        {
+            "name": "moveeos",
+            "base": "",
+            "fields": [
+                {
+                    "name": "from",
+                    "type": "name"
+                },
+                {
+                    "name": "to",
+                    "type": "name"
+                },
+                {
+                    "name": "quantity",
                     "type": "asset"
                 },
                 {
@@ -419,11 +455,6 @@
                     "type": "float_t"
                 }
             ]
-        },
-        {
-            "name": "receive",
-            "base": "",
-            "fields": []
         },
         {
             "name": "refleshkey",
@@ -715,6 +746,11 @@
             "ricardian_contract": ""
         },
         {
+            "name": "destroy",
+            "type": "destroy",
+            "ricardian_contract": ""
+        },
+        {
             "name": "issue",
             "type": "issue",
             "ricardian_contract": ""
@@ -725,8 +761,8 @@
             "ricardian_contract": ""
         },
         {
-            "name": "receive",
-            "type": "receive",
+            "name": "moveeos",
+            "type": "moveeos",
             "ricardian_contract": ""
         },
         {

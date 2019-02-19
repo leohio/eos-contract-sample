@@ -18,16 +18,16 @@ class [[eosio::contract]] cmnty : public eosio::contract {
             total_deposit_table( receiver, receiver.value ),
             global_table( receiver, receiver.value )
         {
-            auto global_data = global_table.find( receiver.value );
-            if ( global_data == global_table.end() ) {
-                uint64_t now = current_time();
-                global_table.emplace( get_self(), [&]( auto& data ) {
-                    data.self = get_self();
-                    data.timestamp = now;
-                    data.pvrate = 0;
-                    data.pvcount = 0;
-                });
-            }
+            // auto global_data = global_table.find( 0 );
+            // if ( global_data == global_table.end() ) {
+            //     uint64_t now = current_time();
+            //     global_table.emplace( get_self(), [&]( auto& data ) {
+            //         data.last_modified = now;
+            //         data.pvcount = 0;
+            //         data.pvrate = 0;
+            //         data.active = 1;
+            //     });
+            // }
         }
 
         /**
@@ -35,7 +35,7 @@ class [[eosio::contract]] cmnty : public eosio::contract {
         **/
 
         [[eosio::action]] void       create( name issuer, symbol_code sym );
-        // [[eosio::action]] void      destroy( symbol_code sym );
+        [[eosio::action]] void      destroy( symbol_code sym );
         [[eosio::action]] void        issue( name user, asset quantity, string memo );
         // [[eosio::action]] void  issueunlock( name user, asset quantity, vector<capi_public_key> subkeys, string memo );
         [[eosio::action]] void transferbyid( name from, name to, symbol_code sym, uint64_t token_id, string memo );
@@ -68,9 +68,8 @@ class [[eosio::contract]] cmnty : public eosio::contract {
         // [[eosio::action]] void startcontent( name manager, uint64_t content_id );
         // [[eosio::action]] void  dropcontent( name manager, uint64_t content_id );
         // [[eosio::action]] void  resetpvrate();
-        // [[eosio::action]] void    initglobal();
         // [[eosio::action]] void deletepvrate( uint64_t timestamp );
-        [[eosio::action]] void      receive();
+        [[eosio::action]] void      moveeos( name from, name to, asset quantity, string memo );
 
         /**
          * Struct
@@ -83,28 +82,32 @@ class [[eosio::contract]] cmnty : public eosio::contract {
         };
 
         struct [[eosio::table]] global {
-            name self;
-            uint64_t timestamp; // latest update time
-            float_t pvrate; // latest pv rate
+            uint64_t last_modified; // latest modified timestamp
             uint64_t pvcount; // global pv count
+            float_t pvrate; // latest pv rate
+            uint8_t active;
 
-            uint64_t primary_key() const { return self.value; }
+            uint64_t primary_key() const { return 0; }
         };
 
         struct [[eosio::table]] currency {
-            asset supply;
+            uint64_t supply;
             name issuer;
             uint64_t established;
-            asset minimumprice;
+            asset borderprice;
             // uint64_t numofmember;
             uint64_t numofmanager;
-            float_t othersratio;
             uint64_t pvcount; // community pv count
+            float_t othersratio;
+            uint8_t active;
 
-            uint64_t primary_key() const { return supply.symbol.code().raw(); }
-            uint64_t get_issuer() const { return issuer.value; }
+            uint64_t primary_key() const { return 0; }
+            // uint64_t get_supply() const { return supply; }
+            // uint64_t get_issuer() const { return issuer.value; }
+            // uint64_t get_established() const { return established; }
+            // uint64_t get_borderprice() const { return static_cast<uint64_t>(borderprice.amount); }
+            // uint64_t get_pv_count() const { return pvcount; }
             // uint64_t get_num_of_member() const { return numofmember; }
-            uint64_t get_pv_count() const { return pvcount; }
         };
 
         struct [[eosio::table]] token {
@@ -149,7 +152,7 @@ class [[eosio::contract]] cmnty : public eosio::contract {
             name user;
 
             uint64_t primary_key() const { return id; }
-            uint64_t get_price() const { return price.amount; }
+            uint64_t get_price() const { return static_cast<uint64_t>(price.amount); }
             uint64_t get_owner() const { return user.value; }
         };
 
@@ -160,15 +163,14 @@ class [[eosio::contract]] cmnty : public eosio::contract {
             string uri;
 
             uint64_t primary_key() const { return id; }
-            asset get_price() const { return price; }
+            uint64_t get_price() const { return static_cast<uint64_t>(price.amount); }
             uint64_t get_provider() const { return provider.value; }
-            string get_uri() const { return uri; }
         };
 
         struct [[eosio::table]] content {
             uint64_t id;
             // symbol_code sym;
-            asset price;
+            asset price; // offer price
             name provider;
             string uri;
             uint64_t pvcount;
@@ -177,9 +179,9 @@ class [[eosio::contract]] cmnty : public eosio::contract {
 
             uint64_t primary_key() const { return id; }
             // uint64_t get_symbol() const { return sym.raw(); }
-            asset get_price() const { return price; }
-            string get_uri() const { return uri; }
-            uint64_t get_pvcount() const { return pvcount; }
+            uint64_t get_price() const { return static_cast<uint64_t>(price.amount); }
+            uint64_t get_provider() const { return provider.value; }
+            uint64_t get_pv_count() const { return pvcount; }
             uint64_t get_accepted() const { return accepted; }
         };
 
@@ -199,13 +201,6 @@ class [[eosio::contract]] cmnty : public eosio::contract {
             float_t get_rate() const { return rate; }
         };
 
-        struct transfer_args {
-            name from;
-            name to;
-            asset quantity;
-            string memo;
-        };
-
         /**
          * Multi Index
         **/
@@ -218,10 +213,7 @@ class [[eosio::contract]] cmnty : public eosio::contract {
 
         using global_index = eosio::multi_index< name("global"), global >;
 
-    	using currency_index = eosio::multi_index< name("currency"), currency,
-    	    indexed_by< name("byissuer"), const_mem_fun<currency, uint64_t, &currency::get_issuer> >,
-            // indexed_by< name("bymember"), const_mem_fun<currency, uint64_t, &currency::get_num_of_member> >,
-            indexed_by< name("bypv"), const_mem_fun<currency, uint64_t, &currency::get_pv_count> > >;
+    	using currency_index = eosio::multi_index< name("currency"), currency >;
 
         using token_index = eosio::multi_index< name("token"), token,
             indexed_by< name("byowner"), const_mem_fun<token, uint64_t, &token::get_owner> > >;
@@ -236,9 +228,14 @@ class [[eosio::contract]] cmnty : public eosio::contract {
             indexed_by< name("byprice"), const_mem_fun<order, uint64_t, &order::get_price> >,
             indexed_by< name("byowner"), const_mem_fun<order, uint64_t, &order::get_owner> > >;
 
-        using offer_index = eosio::multi_index< name("offer"), offer >;
+        using offer_index = eosio::multi_index< name("offer"), offer,
+            indexed_by< name("byprice"), const_mem_fun<offer, uint64_t, &offer::get_price> >,
+            indexed_by< name("byprovider"), const_mem_fun<offer, uint64_t, &offer::get_provider> > >;
 
         using contents_index = eosio::multi_index< name("contents"), content,
+            indexed_by< name("byprice"), const_mem_fun<content, uint64_t, &content::get_price> >,
+            indexed_by< name("byprovider"), const_mem_fun<content, uint64_t, &content::get_provider> >,
+            indexed_by< name("bypvcount"), const_mem_fun<content, uint64_t, &content::get_pv_count> >,
             indexed_by< name("bytime"), const_mem_fun<content, uint64_t, &content::get_accepted> > >;
 
         // using pv_count_index = eosio::multi_index< name("contentspv"), pvcount >;
@@ -283,7 +280,6 @@ class [[eosio::contract]] cmnty : public eosio::contract {
         uint64_t _add_buy_order( name from, symbol_code sym, asset price );
         void _sub_buy_order( name to, symbol_code sym, uint64_t order_id );
         void _update_pv_rate( symbol_code sym, uint64_t timestamp, asset new_offer_price );
-        int64_t get_minimum_price( symbol_code sym );
         void _add_contents( name ram_payer, symbol_code sym, asset price, name provider, string uri, uint64_t timestamp );
         void _add_balance( name owner, asset quantity, name ram_payer );
         void _sub_balance( name owner, asset quantity );
@@ -297,17 +293,18 @@ class [[eosio::contract]] cmnty : public eosio::contract {
         /// Assertion
 
         void assert_positive_quantity_of_nft( asset quantity );
-        void assert_non_negative_price( asset price );
+        void assert_non_negative_eos( asset price );
 
         /// Search Table
 
         uint64_t find_own_token( name owner, symbol_code sym );
         uint64_t find_own_sell_order( name owner, symbol_code sym );
-        uint64_t find_pvdata_by_uri( symbol_code sym, string uri );
+        // uint64_t find_pvdata_by_uri( symbol_code sym, string uri );
         // uint64_t find_offer_by_uri( symbol_code sym, string uri );
-        uint64_t get_global_pv_count();
-        int64_t get_cmnty_offer_reward( symbol_code sym, uint64_t ago );
-        uint64_t get_cmnty_pv_count( symbol_code sym, uint64_t ago );
+        // uint64_t get_global_pv_count();
+        asset get_cmnty_offer_reward( symbol_code sym, uint64_t ago );
+        asset get_border_price( symbol_code sym );
+        // uint64_t get_cmnty_pv_count( symbol_code sym, uint64_t ago );
 
 
         /// Others
