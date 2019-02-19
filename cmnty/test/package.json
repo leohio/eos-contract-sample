@@ -9,9 +9,6 @@
   "author": "mokemokecore",
   "license": "ISC",
   "dependencies": {
-    "bigi": "^1.4.2",
-    "bs58": "^4.0.1",
-    "eosjs": "^16.0.9",
-    "eosjs-ecc": "^4.0.4"
+    "eosjs": "^16.0.9"
   }
 }

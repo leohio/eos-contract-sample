@@ -1,5 +1,4 @@
 const Eos = require("eosjs");
-const ecc = require("eosjs-ecc");
 const { Contract } = require('./contract.js');
 const { getCheapestToken } = require('./table.js');
 
