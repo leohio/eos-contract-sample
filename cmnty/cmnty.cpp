@@ -192,7 +192,7 @@ void cmnty::addsellobyid( symbol_code sym, uint64_t token_id, asset price ) {
 
     currency_index currency_table( get_self(), sym.raw() );
     auto& currency_data = currency_table.get( 0, "token with symbol does not exist." );
-    // eosio_assert( price >= currency_data->borderprice, "price is lower than border price" );
+    // eosio_assert( price >= currency_data.borderprice, "price is lower than border price" );
 
     assert_non_negative_eos( price );
 
@@ -1021,7 +1021,7 @@ asset cmnty::get_border_price( symbol_code sym ) {
     //     last_pv_rate = latest_pv_rate_data->rate;
     // }
 
-    auto& global_data = global_table.get( get_self().value );
+    auto& global_data = global_table.get( 0, "global data deos not exist" );
     float_t last_pv_rate = global_data.pvrate;
 
     /// now はマイクロミリ秒単位

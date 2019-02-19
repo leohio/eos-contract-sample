@@ -84,9 +84,8 @@ cleos get table eosio.token leohioleohio accounts
 # EOS をデポジットする
 cleos push action eosio.token transfer '["leohioleohio", "toycashio123", "0.1000 EOS", "deposit EOS to order token"]' -p leohioleohio@active
 
-# トークンを注文する（デポジットと注文のアクションを同時に行う）
+# トークンを注文する
 cleos push action toycashio123 addbuyorder '["leohioleohio", "TOY", "0.1000 EOS"]' -p leohioleohio@active
-
 
 cleos get table toycashio123 TOY token
 cleos get table toycashio123 TOY buyorder
