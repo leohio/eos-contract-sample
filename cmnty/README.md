@@ -110,7 +110,7 @@ cleos get table toycashio123 toycashio123 contents
 cleos push action eosio.token transfer '["mokemokecore", "toycashio123", "0.1000 EOS", "deposit EOS to offer"]' -p mokemokecore@active
 
 # オファーの提案を出す
-cleos push action eosio.token transfer '["mokemokecore", "TOY", "https://www.geomerlin.com", "0.1000 EOS"]' -p mokemokecore@active
+cleos push action toycashio123 setoffer '["mokemokecore", "TOY", "https://www.geomerlin.com", "0.1000 EOS"]' -p mokemokecore@active
 
 cleos get table toycashio123 TOY offer
 
@@ -124,7 +124,7 @@ cleos get table toycashio123 toycashio123 contents
 cleos get table toycashio123 toycashio123 world
 
 # ID: 0 のコンテンツの PV 数を 1 増加させる
-cleos push action toycashio123 addpvcount '[0, 1]' -p toycashio123@active
+cleos push action toycashio123 addpvcount '[[["PCS", 0, 1}, ["PCS", 1, 1]]]' -p toycashio123@active
 
 cleos get table toycashio123 0 contentspv
 cleos get table toycashio123 toycashio123 currency
@@ -136,11 +136,12 @@ cleos get table toycashio123 toycashio123 world
 
 ```
 # 配当の分配比率を決める（デフォルトはトークン発行者が全部もらう）
-# id: 0 のトークンを持っている人は 10/16
-# id: 2 のトークンを持っている人は  4/16
-# その他のトークンを持っている人で残りの 2/16 を均等に分配
-# トークン 0, 2 以外は発行されていないならば、残りはコントラクトがもらう
-cleos push action toycashio123 setmanager '["TOY", 0, [0, 2], [10, 4], 2]' -p leohioleohio@active
+# id: 0 のトークンを持っている人は 1/2
+# id: 1 のトークンを持っている人は 1/4
+# id: 2 のトークンを持っている人は 1/4
+# その他のトークンを持っている人で残りの 0/4 を均等に分配
+# トークン 0, 1, 2 以外は発行されていないならば、残りはコントラクトがもらう
+cleos push action toycashio123 setmanager '["TOY", 0, [0, 1, 2], [2, 1, 1], 0]' -p leohioleohio@active
 
 # デポジットした EOS の引き出し
 cleos push action toycashio123 withdraw '["leohioleohio", "0.0001 EOS", "withdraw"]' -p leohioleohio@active

@@ -1,5 +1,5 @@
 {
-    "____comment": "This file was generated with eosio-abigen. DO NOT EDIT Tue Feb 19 14:59:38 2019",
+    "____comment": "This file was generated with eosio-abigen. DO NOT EDIT Sat Feb 23 22:52:24 2019",
     "version": "eosio::abi/1.0",
     "structs": [
         {
@@ -53,16 +53,8 @@
             "base": "",
             "fields": [
                 {
-                    "name": "sym",
-                    "type": "symbol_code"
-                },
-                {
-                    "name": "content_id",
-                    "type": "uint64"
-                },
-                {
-                    "name": "pv_count",
-                    "type": "uint64"
+                    "name": "pv_data_list",
+                    "type": "pv_data_str[]"
                 }
             ]
         },
@@ -275,12 +267,12 @@
             ]
         },
         {
-            "name": "currency",
+            "name": "currency_info",
             "base": "",
             "fields": [
                 {
-                    "name": "supply",
-                    "type": "uint64"
+                    "name": "sym",
+                    "type": "symbol_code"
                 },
                 {
                     "name": "issuer",
@@ -295,11 +287,11 @@
                     "type": "asset"
                 },
                 {
-                    "name": "numofmanager",
+                    "name": "pvcount",
                     "type": "uint64"
                 },
                 {
-                    "name": "pvcount",
+                    "name": "numofmanager",
                     "type": "uint64"
                 },
                 {
@@ -309,6 +301,16 @@
                 {
                     "name": "active",
                     "type": "uint8"
+                }
+            ]
+        },
+        {
+            "name": "currency_stats",
+            "base": "",
+            "fields": [
+                {
+                    "name": "supply",
+                    "type": "asset"
                 }
             ]
         },
@@ -439,6 +441,24 @@
                 {
                     "name": "user",
                     "type": "name"
+                }
+            ]
+        },
+        {
+            "name": "pv_data_str",
+            "base": "",
+            "fields": [
+                {
+                    "name": "sym",
+                    "type": "symbol_code"
+                },
+                {
+                    "name": "contents_id",
+                    "type": "uint64"
+                },
+                {
+                    "name": "pv_count",
+                    "type": "uint64"
                 }
             ]
         },
@@ -835,7 +855,7 @@
         },
         {
             "name": "currency",
-            "type": "currency",
+            "type": "currency_info",
             "index_type": "i64",
             "key_names": [],
             "key_types": []
@@ -878,6 +898,13 @@
         {
             "name": "sellorder",
             "type": "order",
+            "index_type": "i64",
+            "key_names": [],
+            "key_types": []
+        },
+        {
+            "name": "stat",
+            "type": "currency_stats",
             "index_type": "i64",
             "key_names": [],
             "key_types": []
