@@ -1,5 +1,5 @@
 {
-    "____comment": "This file was generated with eosio-abigen. DO NOT EDIT Sun Feb 24 19:51:04 2019",
+    "____comment": "This file was generated with eosio-abigen. DO NOT EDIT Mon Feb 25 00:51:03 2019",
     "version": "eosio::abi/1.0",
     "structs": [
         {
@@ -45,6 +45,10 @@
                 {
                     "name": "price",
                     "type": "asset"
+                },
+                {
+                    "name": "memo",
+                    "type": "string"
                 }
             ]
         },
@@ -73,6 +77,10 @@
                 {
                     "name": "price",
                     "type": "asset"
+                },
+                {
+                    "name": "memo",
+                    "type": "string"
                 }
             ]
         },
@@ -91,6 +99,10 @@
                 {
                     "name": "price",
                     "type": "asset"
+                },
+                {
+                    "name": "memo",
+                    "type": "string"
                 }
             ]
         },
@@ -591,6 +603,10 @@
                 {
                     "name": "price",
                     "type": "asset"
+                },
+                {
+                    "name": "memo",
+                    "type": "string"
                 }
             ]
         },

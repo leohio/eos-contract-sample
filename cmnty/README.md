@@ -56,7 +56,7 @@ cleos get table eosio.token mokemokecore accounts
 cleos get table eosio.token leohioleohio accounts
 
 # トークンを売りに出す
-cleos push action toycashio123 addsellobyid '["TOY", 2, "0.1000 EOS"]' -p leohioleohio@active
+cleos push action toycashio123 addsellobyid '["TOY", 2, "0.1000 EOS", "add sell order"]' -p leohioleohio@active
 
 cleos get table toycashio123 TOY token
 cleos get table toycashio123 TOY sellorder
@@ -110,7 +110,7 @@ cleos get table toycashio123 toycashio123 contents
 cleos push action eosio.token transfer '["mokemokecore", "toycashio123", "0.1000 EOS", "deposit EOS to offer"]' -p mokemokecore@active
 
 # オファーの提案を出す
-cleos push action toycashio123 setoffer '["mokemokecore", "TOY", "https://www.geomerlin.com", "0.1000 EOS"]' -p mokemokecore@active
+cleos push action toycashio123 setoffer '["mokemokecore", "TOY", "https://www.geomerlin.com", "0.1000 EOS", "set offer"]' -p mokemokecore@active
 
 cleos get table toycashio123 TOY offer
 

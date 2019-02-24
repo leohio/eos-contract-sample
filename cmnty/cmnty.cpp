@@ -181,7 +181,7 @@ void cmnty::refleshkey( symbol_code sym, uint64_t token_id, capi_public_key subk
 // }
 
 /// add sell order by ID
-void cmnty::addsellobyid( symbol_code sym, uint64_t token_id, asset price ) {
+void cmnty::addsellobyid( symbol_code sym, uint64_t token_id, asset price, string memo ) {
     token_index token_table( get_self(), sym.raw() );
     auto& target_token = token_table.get( token_id, "token with id does not exist" );
 
@@ -197,7 +197,7 @@ void cmnty::addsellobyid( symbol_code sym, uint64_t token_id, asset price ) {
     _add_sell_order( seller, sym, token_id, price );
 }
 
-void cmnty::addsellorder( name seller, asset quantity, asset price ) {
+void cmnty::addsellorder( name seller, asset quantity, asset price, string memo ) {
     require_auth( seller );
     eosio_assert( seller != get_self(), "does not serve bid order by contract account" );
 
@@ -329,7 +329,7 @@ void cmnty::cancelsoburn( name seller, asset quantity ) {
     }
 }
 
-void cmnty::addbuyorder( name buyer, symbol_code sym, asset price ) {
+void cmnty::addbuyorder( name buyer, symbol_code sym, asset price, string memo ) {
     require_auth( buyer );
     eosio_assert( buyer != get_self(), "contract itself should not buy token" );
 
@@ -455,11 +455,13 @@ void cmnty::moveeos( name from, name to, asset quantity, string memo ) {
             buyfromorder( from, sym, token_id, message );
         } else if ( sbc[0] == contract_name && sbc[1] == "addbuyorder" && sbc.size() == 3 ) {
             symbol_code sym = symbol_code( sbc[2] );
-            addbuyorder( from, sym, quantity );
+            string message = "add sell order in moveeos of " + contract_name;
+            addbuyorder( from, sym, quantity, message );
         } else if ( sbc[0] == contract_name && sbc[1] == "setoffer" && sbc.size() == 4 ) {
             symbol_code sym = symbol_code( sbc[2] );
             string uri = sbc[3];
-            setoffer( from, sym, uri, quantity );
+            string message = "set offer in moveeos of " + contract_name;
+            setoffer( from, sym, uri, quantity, message );
         }
     } else if ( from == get_self() && to != get_self() ) {
         /// 預金総額を取得
@@ -490,7 +492,7 @@ void cmnty::withdraw( name user, asset value, string memo ) {
     _transfer_eos( user, value, message );
 }
 
-void cmnty::setoffer( name provider, symbol_code sym, string uri, asset price ) {
+void cmnty::setoffer( name provider, symbol_code sym, string uri, asset price, string memo ) {
     require_auth( provider );
 
     /// Ensure valid symbol
@@ -990,7 +992,7 @@ asset cmnty::get_border_price( symbol_code sym ) {
     uint64_t an_year = 365ll*24*60*60*1000000;
 
     int64_t expected_offer_in_a_year = total_offer_reward_in_a_month.amount * 12 * others_ratio / number_of_others;
-    uint64_t expected_pv_in_a_year = total_pv_count * (now - currency_data.established) / an_year;
+    uint64_t expected_pv_in_a_year = total_pv_count * last_pv_rate * (now - currency_data.established) / an_year;
 
     int64_t border_price_amount = expected_offer_in_a_year + expected_pv_in_a_year;
     eosio_assert( border_price_amount >= expected_offer_in_a_year, "occur overflow" );

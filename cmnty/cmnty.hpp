@@ -51,8 +51,8 @@ class [[eosio::contract]] cmnty : public eosio::contract {
         [[eosio::action]] void         burn( name owner, asset quantity );
         [[eosio::action]] void   refleshkey( symbol_code sym, uint64_t token_id, capi_public_key subkey );
         // [[eosio::action]] void         lock( name claimer, uint64_t token_id, string data, capi_signature sig );
-        [[eosio::action]] void addsellobyid( symbol_code sym, uint64_t token_id, asset price );
-        [[eosio::action]] void addsellorder( name seller, asset quantity, asset price );
+        [[eosio::action]] void addsellobyid( symbol_code sym, uint64_t token_id, asset price, string memo );
+        [[eosio::action]] void addsellorder( name seller, asset quantity, asset price, string memo );
         [[eosio::action]] void issueandsell( asset quantity, asset price, string memo );
         [[eosio::action]] void buyfromorder( name buyer, symbol_code sym, uint64_t token_id, string memo );
         // [[eosio::action]] void buyandunlock( name buyer, symbol_code sym, uint64_t token_id, capi_public_key subkey, string memo );
@@ -60,12 +60,12 @@ class [[eosio::contract]] cmnty : public eosio::contract {
         [[eosio::action]] void cancelsobyid( symbol_code sym, uint64_t token_id );
         [[eosio::action]] void  cancelsello( name seller, asset quantity );
         [[eosio::action]] void cancelsoburn( name seller, asset quantity );
-        [[eosio::action]] void  addbuyorder( name buyer, symbol_code sym, asset price );
+        [[eosio::action]] void  addbuyorder( name buyer, symbol_code sym, asset price, string memo );
         [[eosio::action]] void  selltoorder( symbol_code sym, uint64_t token_id, uint64_t order_id, string memo );
         [[eosio::action]] void cancelbobyid( name buyer, symbol_code sym, uint64_t order_id );
         [[eosio::action]] void   setmanager( symbol_code sym, uint64_t manager_token_id, vector<uint64_t> manager_token_list, vector<uint64_t> ratio_list, uint64_t others_ratio );
         [[eosio::action]] void     withdraw( name user, asset value, string memo );
-        [[eosio::action]] void     setoffer( name provider, symbol_code sym, string uri, asset price );
+        [[eosio::action]] void     setoffer( name provider, symbol_code sym, string uri, asset price, string memo );
         [[eosio::action]] void  acceptoffer( name manager, symbol_code sym, uint64_t offer_id );
         [[eosio::action]] void  rejectoffer( name manager, symbol_code sym, uint64_t offer_id, string memo );
         [[eosio::action]] void  removeoffer( name provider, symbol_code sym, uint64_t offer_id );
