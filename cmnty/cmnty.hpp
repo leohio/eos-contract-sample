@@ -15,7 +15,6 @@ class [[eosio::contract]] cmnty : public eosio::contract {
 
         cmnty( name receiver, name code, datastream<const char*> ds ):
     	    contract::contract( receiver, code, ds ),
-            stats_table( receiver, receiver.value ),
             currency_table( receiver, receiver.value ),
             total_deposit_table( receiver, receiver.value ),
             global_table( receiver, receiver.value )
@@ -98,14 +97,8 @@ class [[eosio::contract]] cmnty : public eosio::contract {
             uint64_t primary_key() const { return 0; }
         };
 
-        struct [[eosio::table]] currency_stats {
+        struct [[eosio::table]] currency {
             asset supply;
-
-            uint64_t primary_key() const { return supply.symbol.code().raw(); }
-        };
-
-        struct [[eosio::table]] currency_info {
-            symbol_code sym;
             name issuer;
             uint64_t established;
             asset borderprice;
@@ -114,9 +107,9 @@ class [[eosio::contract]] cmnty : public eosio::contract {
             float_t othersratio;
             uint8_t active;
 
-            uint64_t primary_key() const { return sym.raw(); }
+            uint64_t primary_key() const { return supply.symbol.code().raw(); }
             uint64_t get_issuer() const { return issuer.value; }
-            uint64_t get_newer() const { return -established; }
+            uint64_t get_newer() const { return established; }
             uint64_t get_borderprice() const { return static_cast<uint64_t>(borderprice.amount); }
             uint64_t get_pv_count() const { return pvcount; }
         };
@@ -193,7 +186,7 @@ class [[eosio::contract]] cmnty : public eosio::contract {
             uint64_t get_price() const { return static_cast<uint64_t>(price.amount); }
             uint64_t get_provider() const { return provider.value; }
             uint64_t get_pv_count() const { return pvcount; }
-            uint64_t get_newer() const { return -accepted; }
+            uint64_t get_accepted() const { return accepted; }
         };
 
         struct [[eosio::table]] pvrate {
@@ -216,13 +209,11 @@ class [[eosio::contract]] cmnty : public eosio::contract {
 
         using global_index = eosio::multi_index< name("global"), global >;
 
-        using stats_index = eosio::multi_index< name("stat"), currency_stats >;
-
-    	using currency_index = eosio::multi_index< name("currency"), currency_info,
-            indexed_by< name("byissuer"), const_mem_fun<currency_info, uint64_t, &currency_info::get_issuer> >,
-            indexed_by< name("bynewer"), const_mem_fun<currency_info, uint64_t, &currency_info::get_newer> >,
-            indexed_by< name("byprice"), const_mem_fun<currency_info, uint64_t, &currency_info::get_borderprice> >,
-            indexed_by< name("bypv"), const_mem_fun<currency_info, uint64_t, &currency_info::get_pv_count> > >;
+    	using currency_index = eosio::multi_index< name("currency"), currency,
+            indexed_by< name("byissuer"), const_mem_fun<currency, uint64_t, &currency::get_issuer> >,
+            indexed_by< name("bytime"), const_mem_fun<currency, uint64_t, &currency::get_newer> >,
+            indexed_by< name("byprice"), const_mem_fun<currency, uint64_t, &currency::get_borderprice> >,
+            indexed_by< name("bypv"), const_mem_fun<currency, uint64_t, &currency::get_pv_count> > >;
 
         using token_index = eosio::multi_index< name("token"), token,
             indexed_by< name("byowner"), const_mem_fun<token, uint64_t, &token::get_owner> > >;
@@ -245,7 +236,7 @@ class [[eosio::contract]] cmnty : public eosio::contract {
             indexed_by< name("byprice"), const_mem_fun<content, uint64_t, &content::get_price> >,
             indexed_by< name("byprovider"), const_mem_fun<content, uint64_t, &content::get_provider> >,
             indexed_by< name("bypvcount"), const_mem_fun<content, uint64_t, &content::get_pv_count> >,
-            indexed_by< name("bytime"), const_mem_fun<content, uint64_t, &content::get_newer> > >;
+            indexed_by< name("bytime"), const_mem_fun<content, uint64_t, &content::get_accepted> > >;
 
         // using pv_count_index = eosio::multi_index< name("contentspv"), pvcount >;
 
@@ -262,7 +253,6 @@ class [[eosio::contract]] cmnty : public eosio::contract {
 
         total_deposit_index total_deposit_table;
         global_index global_table;
-        stats_index stats_table;
         currency_index currency_table;
         // buy_order_index buy_order_table;
         // contents_index contents_table;
@@ -320,5 +310,5 @@ class [[eosio::contract]] cmnty : public eosio::contract {
 
         /// Others
 
-        // vector<string> split_by_comma( string memo );
+        vector<string> split_by_space( string memo );
 };

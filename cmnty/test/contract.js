@@ -1,23 +1,25 @@
 class Contract {
-    constructor(_eosjsInstance, _cmntyContractName, _blocksBehind=3, _expireSeconds=30) {
+    constructor(_eosjsInstance, _cmntyContractName, _broadcast=false, _blocksBehind=1, _expireSeconds=30) {
         this.cmntyContractName = _cmntyContractName;
         this.eosioTokenContractName = "eosio.token";
+        this.broadcast = _broadcast;
         this.blocksBehind = _blocksBehind;
         this.expireSeconds = _expireSeconds;
         this.eos = _eosjsInstance;
     }
 
-    async pushAction(...actionData) {
-        const response = await this.eos.transaction({
+    async signTransaction(...actionData) {
+        const pushTransactionArgs = await this.eos.transaction({
             actions: actionData
         }, {
+            broadcast: this.broadcast,
             blocksBehind: this.blocksBehind,
             expireSeconds: this.expireSeconds
         });
 
-        console.log("trx ID: " + response.transaction_id);
+        console.log("trx ID: " + pushTransactionArgs.transaction_id);
 
-        return response;
+        return pushTransactionArgs;
     }
 
     async refleshKey(_ownerAccountName, _symbolCode, _tokenId, _newSubKey) {
@@ -35,10 +37,28 @@ class Contract {
             }
         };
 
-        return await this.pushAction(refleshKeyActionData);
+        return await this.signTransaction(refleshKeyActionData);
     }
 
-    async buyTokenFromDex(_buyerAccountName, _symbolCode, _tokenId, _tokenPrice) {
+    async addPVCount(_managerAccountName, _symbolCode, _contentsId, _pvCount) {
+        const addPVCountActionData = {
+            account: this.cmntyContractName,
+            name: "addpvcount",
+            authorization: [{
+                actor: _managerAccountName,
+                permission: "active"
+            }],
+            data: {
+                sym: _symbolCode,
+                contents_id: _contentsId,
+                pv_count: _pvCount
+            }
+        };
+
+        return await this.signTransaction(addPVCountActionData);
+    }
+
+    async buyTokenFromDex(_buyerAccountName, _symbolCode, _tokenId, _tokenPrice, _newSubKey) {
         const transferEosActionData = {
             account: this.eosioTokenContractName,
             name: "transfer",
@@ -69,7 +89,21 @@ class Contract {
             }
         };
 
-        return await this.pushAction(transferEosActionData, buyFromOrderActionData);
+        const refleshKeyActionData = {
+            account: this.cmntyContractName,
+            name: "refleshkey",
+            authorization: [{
+                actor: _buyerAccountName,
+                permission: "active"
+            }],
+            data: {
+                sym: _symbolCode,
+                token_id: _tokenId,
+                subkey: _newSubKey
+            }
+        };
+
+        return await this.signTransaction(transferEosActionData, buyFromOrderActionData, refleshKeyActionData);
     }
 
     async setOffer(_providerAccountName, _symbolCode, _contentsUri, _offerPrice) {
@@ -87,6 +121,7 @@ class Contract {
                 memo: "deposit token to set offer"
             }
         };
+
         const setOfferActionData = {
             account: this.cmntyContractName,
             name: "setoffer",
@@ -102,7 +137,7 @@ class Contract {
             }
         };
 
-        return await this.pushAction(transferEosActionData, setOfferActionData);
+        return await this.signTransaction(transferEosActionData, setOfferActionData);
     }
 
     async reserveToken(_buyerAccountName, _symbolCode, _tokenPrice) {
@@ -135,7 +170,7 @@ class Contract {
             }
         };
 
-        return await this.pushAction(transferEosActionData, addBuyOrderActionData);
+        return await this.signTransaction(transferEosActionData, addBuyOrderActionData);
     }
 }
 

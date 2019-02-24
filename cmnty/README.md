@@ -118,17 +118,15 @@ cleos get table toycashio123 TOY offer
 cleos push action toycashio123 acceptoffer '["leohioleohio", "TOY", 0]' -p leohioleohio@active
 
 cleos get table toycashio123 TOY offer
-cleos get table toycashio123 0 contentspv # コンテンツ ID: 0 の PV 数追加履歴
 cleos get table toycashio123 toycashio123 currency
-cleos get table toycashio123 toycashio123 contents
+cleos get table toycashio123 TOY contents
 cleos get table toycashio123 toycashio123 world
 
 # ID: 0 のコンテンツの PV 数を 1 増加させる
 cleos push action toycashio123 addpvcount '[[["PCS", 0, 1}, ["PCS", 1, 1]]]' -p toycashio123@active
 
-cleos get table toycashio123 0 contentspv
 cleos get table toycashio123 toycashio123 currency
-cleos get table toycashio123 toycashio123 contents
+cleos get table toycashio123 TOY contents
 cleos get table toycashio123 toycashio123 world
 ```
 

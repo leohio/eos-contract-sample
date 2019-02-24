@@ -32,17 +32,12 @@ void cmnty::destroy( symbol_code sym ) {
     eosio_assert( sym.is_valid(), "invalid symbol name" );
 
     /// Check if currency with symbol already exists
-    auto& stats_data = stats_table.get( get_self().value, "token with symbol does not exists" );
-    uint64_t num_of_owner = static_cast<uint64_t>(stats_data.supply.amount);
+    auto& currency_data = currency_table.get( get_self().value, "token with symbol does not exists" );
+    uint64_t num_of_owner = static_cast<uint64_t>(currency_data.supply.amount);
     eosio_assert( num_of_owner < 2, "who has this token exists except for one manager" );
 
     /// Delete currency
-    stats_table.erase( stats_data );
-
-    auto currency_data = currency_table.find( sym.raw() );
-    if ( currency_data != currency_table.end() ) {
-        currency_table.erase( currency_data );
-    }
+    currency_table.erase( currency_data );
 
     /// Delete manager
     community_manager_index community_manager_table( get_self(), sym.raw() );
@@ -449,22 +444,23 @@ void cmnty::moveeos( name from, name to, asset quantity, string memo ) {
         /// TODO: transfer しながら buy するなどは、
         /// トランザクションに 2つのアクションを入れればいいだけなので
         /// この部分はおそらく不要になる。
-        // vector<string> sbc = split_by_space( memo );
-        // string contract_name = get_self().to_string();
-        //
-        // if ( sbc[0] == contract_name && sbc[1] == "buy" && sbc.size() == 4 ) {
-        //     symbol_code sym = symbol_code( sbc[2] );
-        //     uint64_t token_id = static_cast<uint64_t>( std::stoull(sbc[3]) );
-        //     string message = "buy token in moveeos of " + contract_name;
-        //     buyfromorder( from, sym, token_id, message );
-        // } else if ( sbc[0] == contract_name && sbc[1] == "addbuyorder" && sbc.size() == 3 ) {
-        //     symbol_code sym = symbol_code( sbc[2] );
-        //     addbuyorder( from, sym, quantity );
-        // } else if ( sbc[0] == contract_name && sbc[1] == "setoffer" && sbc.size() == 4 ) {
-        //     symbol_code sym = symbol_code( sbc[2] );
-        //     string uri = sbc[3];
-        //     setoffer( from, sym, uri, quantity );
-        // }
+        /// scatterJS のせいでなぜかできない
+        vector<string> sbc = split_by_space( memo );
+        string contract_name = get_self().to_string();
+
+        if ( sbc[0] == contract_name && sbc[1] == "buyfromorder" && sbc.size() == 4 ) {
+            symbol_code sym = symbol_code( sbc[2] );
+            uint64_t token_id = static_cast<uint64_t>( std::stoull(sbc[3]) );
+            string message = "buy token in moveeos of " + contract_name;
+            buyfromorder( from, sym, token_id, message );
+        } else if ( sbc[0] == contract_name && sbc[1] == "addbuyorder" && sbc.size() == 3 ) {
+            symbol_code sym = symbol_code( sbc[2] );
+            addbuyorder( from, sym, quantity );
+        } else if ( sbc[0] == contract_name && sbc[1] == "setoffer" && sbc.size() == 4 ) {
+            symbol_code sym = symbol_code( sbc[2] );
+            string uri = sbc[3];
+            setoffer( from, sym, uri, quantity );
+        }
     } else if ( from == get_self() && to != get_self() ) {
         /// 預金総額を取得
         asset total_amount( 0, quantity.symbol ); /// quantity.symbol is symbol("EOS", 4)
@@ -530,7 +526,6 @@ void cmnty::acceptoffer( name manager, symbol_code sym, uint64_t offer_id ) {
 
     /// Ensure valid symbol
     eosio_assert( sym.is_valid(), "invalid symbol name" );
-    auto& stats_data = stats_table.get( sym.raw(), "token with symbol does not exist." );
     auto& currency_data = currency_table.get( sym.raw(), "currency info with the symbol does not exist." );
 
     // TODO: 管理者であることの確認方法
@@ -563,7 +558,7 @@ void cmnty::acceptoffer( name manager, symbol_code sym, uint64_t offer_id ) {
         /// num_of_owner と num_of_manager が一致するときは、
         /// コントラクトが others_ratio 分をもらう
 
-        uint64_t num_of_owner = static_cast<uint64_t>(stats_data.supply.amount);
+        uint64_t num_of_owner = static_cast<uint64_t>(currency_data.supply.amount);
         uint64_t num_of_manager = currency_data.numofmanager;
         uint64_t others_ratio = currency_data.othersratio;
 
@@ -714,25 +709,17 @@ void cmnty::_add_pv_count( symbol_code sym, uint64_t contents_id, uint64_t pv_co
 void cmnty::_create_token( name issuer, symbol_code sym ) {
     /// Check if currency with symbol already exists
     auto currency_data = currency_table.find( sym.raw() );
-    eosio_assert( currency_data == currency_table.end(), "token with symbol already exists" );
-
-    auto stats_data = stats_table.find( sym.raw() );
-    eosio_assert( stats_data == stats_table.end(), "currency info with the symbol already exists" );
-
-    stats_table.emplace( get_self(), [&]( auto& data ) {
-        data.supply = asset{ 0, symbol(sym, 0) };
-    });
+    eosio_assert( currency_data == currency_table.end(), "currency info with the symbol already exists" );
 
     uint64_t now = current_time();
     /// Create new currency
     currency_table.emplace( get_self(), [&]( auto& data ) {
-        data.sym = sym;
+        data.supply = asset{ 0, symbol(sym, 0) };
         data.issuer = issuer;
         data.established = now;
         data.borderprice = asset{ 1, symbol("EOS", 4) };
-        // data.numofmember = 0; // not necessary?
-        data.numofmanager = 1;
         data.pvcount = 0;
+        data.numofmanager = 1;
         data.othersratio = 0;
         data.active = 1;
     });
@@ -973,7 +960,6 @@ asset cmnty::get_cmnty_offer_reward( symbol_code sym, uint64_t ago ) {
 }
 
 asset cmnty::get_border_price( symbol_code sym ) {
-    auto& stats_data = stats_table.get( sym.raw(), "this currency info does not exist" );
     auto& currency_data = currency_table.get( sym.raw(), "this currency does not exist" );
     uint64_t cmnty_pv_count = currency_data.pvcount;
 
@@ -983,6 +969,7 @@ asset cmnty::get_border_price( symbol_code sym ) {
     // if ( latest_pv_rate_data != pv_rate_table.rend() ) {
     //     last_pv_rate = latest_pv_rate_data->rate;
     // }
+
 
     auto& global_data = global_table.get( 0, "global data deos not exist" );
     float_t last_pv_rate = global_data.pvrate;
@@ -998,7 +985,7 @@ asset cmnty::get_border_price( symbol_code sym ) {
     uint64_t total_pv_count = currency_data.pvcount;
 
     float_t others_ratio = currency_data.othersratio;
-    uint64_t num_of_owner = static_cast<uint64_t>(stats_data.supply.amount);
+    uint64_t num_of_owner = static_cast<uint64_t>(currency_data.supply.amount);
     uint64_t number_of_others = num_of_owner - currency_data.numofmanager;
     uint64_t an_year = 365ll*24*60*60*1000000;
 
@@ -1041,13 +1028,11 @@ void cmnty::_add_contents( name ram_payer, symbol_code sym, asset price, name pr
     uint8_t counter = 0;
     bool found = false;
     for (; rit != table.rend(); ++rit ) {
-        // if ( rit->sym == sym ) {
         counter++;
         if ( counter == 20 ) {
             found = true;
             break;
         }
-        // }
     }
 
     // contents ID が20つ前のものを消去する
@@ -1094,9 +1079,9 @@ void cmnty::_add_supply( asset quantity ) {
     assert_positive_quantity_of_nft( quantity );
 
     symbol_code sym = quantity.symbol.code();
-    auto& stats_data = stats_table.get( sym.raw(), "token with symbol does not exist." );
+    auto& currency_data = currency_table.get( sym.raw(), "token with symbol does not exist." );
 
-    stats_table.modify( stats_data, get_self(), [&]( auto& data ) {
+    currency_table.modify( currency_data, get_self(), [&]( auto& data ) {
         data.supply += quantity;
     });
 }
@@ -1105,10 +1090,10 @@ void cmnty::_sub_supply( asset quantity ) {
     assert_positive_quantity_of_nft( quantity );
 
     symbol_code sym = quantity.symbol.code();
-    auto& stats_data = stats_table.get( sym.raw(), "token with symbol does not exist." );
-    eosio_assert( stats_data.supply >= quantity, "exceed total supply" );
+    auto& currency_data = currency_table.get( sym.raw(), "token with symbol does not exist." );
+    eosio_assert( currency_data.supply >= quantity, "exceed total supply" );
 
-    stats_table.modify( stats_data, get_self(), [&]( auto& data ) {
+    currency_table.modify( currency_data, get_self(), [&]( auto& data ) {
         data.supply -= quantity;
     });
 }
@@ -1305,28 +1290,28 @@ uint64_t cmnty::find_own_sell_order( name owner, symbol_code sym ) {
 //     return global_pv_count;
 // }
 
-// vector<string> cmnty::split_by_space( string str ) {
-//     eosio_assert( str.size() <= 256, "too long str" );
-//     const char* c = str.c_str();
-//     vector<char> char_list;
-//     string segment;
-//     vector<string> split_list;
-//
-//     for ( uint8_t i = 0; c[i]; ++i ) {
-//         eosio_assert( ' ' <= c[i] && c[i] <= '~', "str only contains between 0x20 and 0x7e" );
-//
-//         if ( c[i] == ' ' ) {
-//             split_list.push_back( string( char_list.begin(), char_list.end() ) );
-//             char_list.clear();
-//         } else {
-//             char_list.push_back( c[i] );
-//         }
-//     }
-//
-//     split_list.push_back( string( char_list.begin(), char_list.end() ) );
-//
-//     return split_list;
-// }
+vector<string> cmnty::split_by_space( string str ) {
+    eosio_assert( str.size() <= 256, "too long str" );
+    const char* c = str.c_str();
+    vector<char> char_list;
+    string segment;
+    vector<string> split_list;
+
+    for ( uint8_t i = 0; c[i]; ++i ) {
+        eosio_assert( ' ' <= c[i] && c[i] <= '~', "str only contains between 0x20 and 0x7e" );
+
+        if ( c[i] == ' ' ) {
+            split_list.push_back( string( char_list.begin(), char_list.end() ) );
+            char_list.clear();
+        } else {
+            char_list.push_back( c[i] );
+        }
+    }
+
+    split_list.push_back( string( char_list.begin(), char_list.end() ) );
+
+    return split_list;
+}
 
 // void cmnty::resetpvrate() {
 //     require_auth( get_self() );
