@@ -25,25 +25,25 @@ void cmnty::create( name issuer, symbol_code sym ) {
     _create_token( issuer, sym );
 }
 
-void cmnty::destroy( symbol_code sym ) {
-    require_auth( get_self() ); // only destroy token by contract account
-
-    /// Valid symbol
-    eosio_assert( sym.is_valid(), "invalid symbol name" );
-
-    /// Check if currency with symbol already exists
-    auto& currency_data = currency_table.get( get_self().value, "token with symbol does not exists" );
-    uint64_t num_of_owner = static_cast<uint64_t>(currency_data.supply.amount);
-    eosio_assert( num_of_owner < 2, "who has this token exists except for one manager" );
-
-    /// Delete currency
-    currency_table.erase( currency_data );
-
-    /// Delete manager
-    community_manager_index community_manager_table( get_self(), sym.raw() );
-    auto& community_manager_data = community_manager_table.get( 0, "token#0 does not exist" );
-    community_manager_table.erase( community_manager_data );
-}
+// void cmnty::destroy( symbol_code sym ) {
+//     require_auth( get_self() ); // only destroy token by contract account
+//
+//     /// Valid symbol
+//     eosio_assert( sym.is_valid(), "invalid symbol name" );
+//
+//     /// Check if currency with symbol already exists
+//     auto& currency_data = currency_table.get( get_self().value, "token with symbol does not exists" );
+//     uint64_t num_of_owner = static_cast<uint64_t>(currency_data.supply.amount);
+//     eosio_assert( num_of_owner < 2, "who has this token exists except for one manager" );
+//
+//     /// Delete currency
+//     currency_table.erase( currency_data );
+//
+//     /// Delete manager
+//     community_manager_index community_manager_table( get_self(), sym.raw() );
+//     auto& community_manager_data = community_manager_table.get( 0, "token#0 does not exist" );
+//     community_manager_table.erase( community_manager_data );
+// }
 
 void cmnty::issue( name user, asset quantity, string memo ) {
     eosio_assert( is_account( user ), "user account does not exist");
@@ -380,60 +380,77 @@ void cmnty::cancelbobyid( name buyer, symbol_code sym, uint64_t order_id ) {
     _sub_buy_order( buyer, sym, order_id );
 }
 
-/// TODO: manager 権限を剥奪したいときは、 ratio を 0 にする
-/// そうしないと比率がおかしくなる。。
-void cmnty::setmanager( symbol_code sym, uint64_t manager_token_id, vector<uint64_t> manager_token_list, vector<uint64_t> ratio_list, uint64_t others_ratio ) {
-    token_index token_table( get_self(), sym.raw() );
-    auto& token_data_of_manager = token_table.get( manager_token_id, "token with id is not found" );
+/// manager 権限を剥奪したいときは、 ratio を 0 にする
+void cmnty::setmanager( symbol_code sym, uint64_t manager_token_id, vector<uint64_t> token_id_list, vector<uint16_t> weight_list, uint16_t others_weight ) {
+    auto& currency_data = currency_table.get( sym.raw(), "token with symbol does not exist. create token before issue" );
 
-    name manager = token_data_of_manager.owner;
-    require_auth( manager );
+    name issuer = currency_data.issuer;
+    require_auth( issuer );
 
     community_manager_index community_manager_table( get_self(), sym.raw() );
-    auto& community_data_of_manager = community_manager_table.get( manager_token_id, "you are not manager" );
+    auto& community_data_of_manager = community_manager_table.get( manager_token_id, "you are not community manager" );
 
-    uint64_t manager_list_length = manager_token_list.size();
-    uint64_t ratio_list_length = ratio_list.size();
-    eosio_assert( manager_list_length == ratio_list_length, "list size is invalid" );
+    token_index token_table( get_self(), sym.raw() );
+    auto& token_data = token_table.get( manager_token_id, "token with symbol does not exist" );
+    name manager = token_data.owner;
+    require_auth( manager );
 
-    auto& currency_data = currency_table.get( sym.raw(), "currency with symbol does not exist" );
+    uint64_t token_id_list_length = static_cast<uint64_t>( token_id_list.size() );
+    uint64_t weight_list_length = static_cast<uint64_t>( weight_list.size() );
+    eosio_assert( token_id_list_length == weight_list_length, "list size is invalid" );
 
-    float_t sum_of_ratio = others_ratio;
-    for ( uint64_t i = 0; i != manager_list_length; ++i ) {
-        auto& token_data = token_table.get( manager_token_list[i], "token with id is not found" );
+    uint64_t sum_of_weight = others_weight;
+    for ( uint64_t i = 0; i != token_id_list_length; ++i ) {
+        auto& token_data = token_table.get( token_id_list[i], "token with id is not found" );
 
-        eosio_assert( sum_of_ratio + ratio_list[i] >= sum_of_ratio, "occur overflow" ); // check overflow
-        sum_of_ratio += ratio_list[i];
+        eosio_assert( sum_of_weight + weight_list[i] >= sum_of_weight, "occur overflow" ); // check overflow
+        sum_of_weight += weight_list[i];
     }
 
-    eosio_assert( sum_of_ratio > 0, "sum of ratio must be positive" );
+    eosio_assert( sum_of_weight > 0, "sum of weight must be positive" );
 
     uint64_t num_of_manager = currency_data.numofmanager;
-    for ( uint64_t j = 0; j != manager_list_length; ++j ) {
-        auto community_data = community_manager_table.find( manager_token_list[j] );
+    int64_t weight_diff = 0;
+    for ( uint64_t j = 0; j != token_id_list_length; ++j ) {
+        auto community_data = community_manager_table.find( token_id_list[j] );
         if ( community_data == community_manager_table.end() ) {
-            num_of_manager += 1;
-            community_manager_table.emplace( get_self(), [&]( auto& data ) {
-                data.manager = manager_token_list[j];
-                data.ratio = static_cast<float_t>(ratio_list[j]) / sum_of_ratio;
-            });
+            if (weight_list[j] > 0) {
+                num_of_manager += 1;
+
+                eosio_assert( weight_diff + weight_list[j] > weight_diff, "occur overflow" );
+                weight_diff += weight_list[j];
+
+                community_manager_table.emplace( get_self(), [&]( auto& data ) {
+                    data.token_id = token_id_list[j];
+                    data.weight = weight_list[j];
+                });
+            }
         } else {
-            if (ratio_list[j] > 0) {
-                /// 書き換える
+            uint16_t old_weight = community_data->weight;
+            if (weight_list[j] > 0) {
+                eosio_assert( weight_diff + weight_list[j] > weight_diff, "occur overflow" );
+                weight_diff += weight_list[j];
+                eosio_assert( weight_diff - old_weight <= weight_diff, "occur underflow" );
+                weight_diff -= old_weight;
+
                 community_manager_table.modify( community_data, get_self(), [&]( auto& data ) {
-                    data.ratio = static_cast<float_t>(ratio_list[j]) / sum_of_ratio;
+                    data.weight = weight_list[j];
                 });
             } else {
                 num_of_manager -= 1;
+
+                eosio_assert( weight_diff - old_weight <= weight_diff, "occur underflow" );
+                weight_diff -= old_weight;
+
                 community_manager_table.erase( community_data );
             }
-
         }
     }
 
     currency_table.modify( currency_data, get_self(), [&]( auto& data ) {
         data.numofmanager = num_of_manager;
-        data.othersratio = static_cast<float_t>(others_ratio) / sum_of_ratio;
+        data.others_reward_weight = others_weight;
+        data.sum_of_reward_weight = sum_of_weight;
     });
 }
 
@@ -445,6 +462,7 @@ void cmnty::moveeos( name from, name to, asset quantity, string memo ) {
         /// トランザクションに 2つのアクションを入れればいいだけなので
         /// この部分はおそらく不要になる。
         /// scatterJS のせいでなぜかできない
+        /// もしかしてできる？
         vector<string> sbc = split_by_space( memo );
         string contract_name = get_self().to_string();
 
@@ -503,6 +521,9 @@ void cmnty::setoffer( name provider, symbol_code sym, string uri, asset price, s
 
     assert_non_negative_eos( price );
 
+    bool found = find_contents_by_uri( sym, uri );
+    eosio_assert( !found, "already accepted this offer" );
+
     /// オファー料金が前もってコントラクトに振り込まれているか確認
     if ( price.amount > 0 ) {
         deposit_index deposit_table( get_self(), provider.value );
@@ -523,17 +544,18 @@ void cmnty::setoffer( name provider, symbol_code sym, string uri, asset price, s
     });
 }
 
-void cmnty::acceptoffer( name manager, symbol_code sym, uint64_t offer_id ) {
-    require_auth( manager );
-
+void cmnty::acceptoffer( symbol_code sym, uint64_t manager_token_id, uint64_t offer_id ) {
     /// Ensure valid symbol
     eosio_assert( sym.is_valid(), "invalid symbol name" );
     auto& currency_data = currency_table.get( sym.raw(), "currency info with the symbol does not exist." );
 
-    // TODO: 管理者であることの確認方法
     community_manager_index community_manager_table( get_self(), sym.raw() );
-    uint64_t token_id = find_own_token( manager, sym );
-    auto& community_data_of_manager = community_manager_table.get( token_id, "you are not community manager" );
+    auto& community_data_of_manager = community_manager_table.get( manager_token_id, "you are not community manager" );
+
+    token_index token_table( get_self(), sym.raw() );
+    auto& token_data = token_table.get( manager_token_id, "token with symbol does not exist" );
+    name manager = token_data.owner;
+    require_auth( manager );
 
     offer_index offer_list( get_self(), sym.raw() );
     auto& offer_data = offer_list.get( offer_id, "offer data do not exist" );
@@ -541,6 +563,9 @@ void cmnty::acceptoffer( name manager, symbol_code sym, uint64_t offer_id ) {
     asset price = offer_data.price;
     name provider = offer_data.provider;
     string uri = offer_data.uri;
+
+    bool found = find_contents_by_uri( sym, uri );
+    eosio_assert( !found, "already accepted this offer" );
 
     assert_non_negative_eos( price );
     eosio_assert( uri.size() <= 256, "uri has more than 256 bytes" );
@@ -560,43 +585,48 @@ void cmnty::acceptoffer( name manager, symbol_code sym, uint64_t offer_id ) {
         /// num_of_owner と num_of_manager が一致するときは、
         /// コントラクトが others_ratio 分をもらう
 
-        uint64_t num_of_owner = static_cast<uint64_t>(currency_data.supply.amount);
-        uint64_t num_of_manager = currency_data.numofmanager;
-        uint64_t others_ratio = currency_data.othersratio;
+        int64_t num_of_owner = currency_data.supply.amount;
+        int64_t num_of_manager = static_cast<int64_t>(currency_data.numofmanager);
+        int64_t sum_of_weight = static_cast<int64_t>(currency_data.sum_of_reward_weight);
+        int64_t others_weight = static_cast<int64_t>(currency_data.others_reward_weight);
+        int64_t num_of_others = static_cast<int64_t>(num_of_owner - num_of_manager);
 
         token_index token_table( get_self(), sym.raw() );
         for ( auto it = token_table.begin(); it != token_table.end(); ++it ) {
             name owner = it->owner;
-            string message = "executed as the inline action in acceptoffer of " + get_self().to_string();
+            // string message = "executed as the inline action in acceptoffer of " + get_self().to_string();
 
             auto community_data = community_manager_table.find( it->id );
             if ( community_data == community_manager_table.end() ) {
-                /// トークン管理者でなければ、 price * others ratio をトークン所持者で均等に分配
-                asset share( static_cast<int64_t>( static_cast<float_t>(price.amount) * ( others_ratio / (num_of_owner - num_of_manager) ) ), price.symbol );
-                if ( share.amount > 0 ) {
-                    _transfer_eos( owner, share, message );
+                /// トークン管理者でなければ、 price * others_reward_ratio をトークン所持者で均等に分配
+                asset reward = price * others_weight / num_of_others / sum_of_weight;
+                if ( reward.amount > 0 ) {
+                    _add_deposit( owner, reward );
                 }
             } else {
-                /// トークン管理者でなければ、 price * ratio を分配
-                asset share( static_cast<int64_t>( static_cast<float_t>(price.amount) * community_data->ratio ), price.symbol );
-                if ( share.amount > 0 ) {
-                    _transfer_eos( manager, share, message );
+                /// トークン管理者でなければ、 price * reward_ratio を分配
+                int64_t weight = static_cast<int64_t>(community_data->weight);
+                asset reward = price * weight / sum_of_weight;
+                if ( reward.amount > 0 ) {
+                    _add_deposit( owner, reward );
                 }
             }
         }
     }
 }
 
-void cmnty::rejectoffer( name manager, symbol_code sym, uint64_t offer_id, string memo ) {
-    require_auth( manager );
-
+void cmnty::rejectoffer( symbol_code sym, uint64_t manager_token_id, uint64_t offer_id, string memo ) {
     /// Ensure valid symbol
     eosio_assert( sym.is_valid(), "invalid symbol name" );
     auto& currency_data = currency_table.get( sym.raw(), "token with symbol does not exist." );
 
     community_manager_index community_manager_table( get_self(), sym.raw() );
-    uint64_t token_id = find_own_token( manager, sym );
-    auto& community_data_of_manager = community_manager_table.get( token_id, "you are not community manager" );
+    auto& community_data_of_manager = community_manager_table.get( manager_token_id, "you are not community manager" );
+
+    token_index token_table( get_self(), sym.raw() );
+    auto& token_data = token_table.get( manager_token_id, "token with symbol does not exist" );
+    name manager = token_data.owner;
+    require_auth( manager );
 
     offer_index offer_list( get_self(), sym.raw() );
     auto& offer_data = offer_list.get( offer_id, "offer data do not exist" );
@@ -701,12 +731,19 @@ void cmnty::_add_pv_count( symbol_code sym, uint64_t contents_id, uint64_t pv_co
 //     });
 // }
 
-// void cmnty::dropcontent( name manager, uint64_t contents_id ) {
-//     require_auth( manager );
-//
-//     auto contents_data = contents_table.find( contents_id );
-//     contents_table.erase( contents_data );
-// }
+void cmnty::dropcontent( symbol_code sym, uint64_t manager_token_id, uint64_t contents_id ) {
+    community_manager_index community_manager_table( get_self(), sym.raw() );
+    auto& community_data_of_manager = community_manager_table.get( manager_token_id, "you are not community manager" );
+
+    token_index token_table( get_self(), sym.raw() );
+    auto& token_data = token_table.get( manager_token_id, "token with symbol does not exist" );
+    name manager = token_data.owner;
+    require_auth( manager );
+
+    contents_index contents_table( get_self(), sym.raw() );
+    auto& contents_data = contents_table.get( contents_id, "this offer does not exist" );
+    contents_table.erase( contents_data );
+}
 
 void cmnty::_create_token( name issuer, symbol_code sym ) {
     /// Check if currency with symbol already exists
@@ -722,7 +759,8 @@ void cmnty::_create_token( name issuer, symbol_code sym ) {
         data.borderprice = asset{ 1, symbol("EOS", 4) };
         data.pvcount = 0;
         data.numofmanager = 1;
-        data.othersratio = 0;
+        data.others_reward_weight = 0;
+        data.sum_of_reward_weight = 1;
         data.active = 1;
     });
 
@@ -732,8 +770,8 @@ void cmnty::_create_token( name issuer, symbol_code sym ) {
     /// Resister community manager
     community_manager_index community_manager_table( get_self(), sym.raw() );
     community_manager_table.emplace( get_self(), [&]( auto& data ) {
-        data.manager = token_id;
-        data.ratio = 1;
+        data.token_id = token_id;
+        data.weight = 1;
     });
 }
 
@@ -890,7 +928,7 @@ uint64_t cmnty::_add_buy_order( name from, symbol_code sym, asset price ) {
 
     buy_order_index buy_order_table( get_self(), sym.raw() );
     uint64_t order_id = buy_order_table.available_primary_key();
-    buy_order_table.emplace( from, [&]( auto& data ) {
+    buy_order_table.emplace( get_self(), [&]( auto& data ) {
         data.id = order_id;
         data.price = price;
         data.user = from;
@@ -986,13 +1024,13 @@ asset cmnty::get_border_price( symbol_code sym ) {
     /// 今までの PV の合計
     uint64_t total_pv_count = currency_data.pvcount;
 
-    float_t others_ratio = currency_data.othersratio;
+    float_t others_ratio = static_cast<float_t>(currency_data.others_reward_weight / currency_data.sum_of_reward_weight);
     uint64_t num_of_owner = static_cast<uint64_t>(currency_data.supply.amount);
     uint64_t number_of_others = num_of_owner - currency_data.numofmanager;
     uint64_t an_year = 365ll*24*60*60*1000000;
 
     int64_t expected_offer_in_a_year = total_offer_reward_in_a_month.amount * 12 * others_ratio / number_of_others;
-    uint64_t expected_pv_in_a_year = total_pv_count * last_pv_rate * (now - currency_data.established) / an_year;
+    uint64_t expected_pv_in_a_year = total_pv_count * last_pv_rate * an_year / (now - currency_data.established);
 
     int64_t border_price_amount = expected_offer_in_a_year + expected_pv_in_a_year;
     eosio_assert( border_price_amount >= expected_offer_in_a_year, "occur overflow" );
@@ -1238,31 +1276,28 @@ uint64_t cmnty::find_own_sell_order( name owner, symbol_code sym ) {
     return token_id;
 }
 
-// uint64_t cmnty::find_pvdata_by_uri( symbol_code sym, string uri ) {
-//     /// Ensure valid symbol
-//     eosio_assert( sym.is_valid(), "invalid symbol name" );
-//
-//     bool found = false;
-//     uint64_t uri_id = 0;
-//
-//     /// uri でテーブルを検索
-//     currency_index currency_table( get_self(), sym.raw() );
-//     auto& currency_data = currency_table.get( 0, "token with symbol does not exist." );
-//
-//     contents_index contents_table( get_self(), sym.raw() );
-//     auto it = contents_table.begin();
-//     for (; it != contents_table.end(); ++it ) {
-//         if ( it->uri == uri ) {
-//             uri_id = it->id;
-//             found = true;
-//             break;
-//         }
-//     }
-//
-//     eosio_assert( found, "uri is not found" );
-//
-//     return uri_id;
-// }
+bool cmnty::find_contents_by_uri( symbol_code sym, string uri ) {
+    /// Ensure valid symbol
+    eosio_assert( sym.is_valid(), "invalid symbol name" );
+
+    bool found = false;
+    uint64_t uri_id = 0;
+
+    /// uri でテーブルを検索
+    auto& currency_data = currency_table.get( sym.raw(), "token with symbol does not exist." );
+
+    contents_index contents_table( get_self(), sym.raw() );
+    auto it = contents_table.begin();
+    for (; it != contents_table.end(); ++it ) {
+        if ( it->uri == uri ) {
+            uri_id = it->id;
+            found = true;
+            break;
+        }
+    }
+
+    return found;
+}
 
 // uint64_t cmnty::get_cmnty_pv_count( symbol_code sym, uint64_t ago ) {
 //     cmnty_pv_count_index cmnty_pv_count_table( get_self(), sym.raw() );
@@ -1357,7 +1392,6 @@ extern "C" {
                    (cancelsobyid)
                    // (cancelsello)
                    // (cancelsoburn)
-
                    (addbuyorder)
                    (selltoorder)
                    (cancelbobyid)
@@ -1368,14 +1402,7 @@ extern "C" {
                    (rejectoffer)
                    (removeoffer)
                    (addpvcount)
-
-                   // (resetpvcount)
-                   // (stopcontent)
-                   // (startcontent)
-                   // (dropcontent)
-
-                   // (resetpvrate)
-                   // (deletepvrate)
+                   (dropcontent)
                );
             }
         }

@@ -1,5 +1,5 @@
 {
-    "____comment": "This file was generated with eosio-abigen. DO NOT EDIT Mon Feb 25 00:51:03 2019",
+    "____comment": "This file was generated with eosio-abigen. DO NOT EDIT Fri Mar  1 02:00:54 2019",
     "version": "eosio::abi/1.0",
     "structs": [
         {
@@ -7,12 +7,12 @@
             "base": "",
             "fields": [
                 {
-                    "name": "manager",
-                    "type": "name"
-                },
-                {
                     "name": "sym",
                     "type": "symbol_code"
+                },
+                {
+                    "name": "manager_token_id",
+                    "type": "uint64"
                 },
                 {
                     "name": "offer_id",
@@ -221,12 +221,12 @@
             "base": "",
             "fields": [
                 {
-                    "name": "manager",
+                    "name": "token_id",
                     "type": "uint64"
                 },
                 {
-                    "name": "ratio",
-                    "type": "float_t"
+                    "name": "weight",
+                    "type": "uint16"
                 }
             ]
         },
@@ -307,8 +307,12 @@
                     "type": "uint64"
                 },
                 {
-                    "name": "othersratio",
-                    "type": "float_t"
+                    "name": "sum_of_reward_weight",
+                    "type": "uint64"
+                },
+                {
+                    "name": "others_reward_weight",
+                    "type": "uint16"
                 },
                 {
                     "name": "active",
@@ -317,12 +321,20 @@
             ]
         },
         {
-            "name": "destroy",
+            "name": "dropcontent",
             "base": "",
             "fields": [
                 {
                     "name": "sym",
                     "type": "symbol_code"
+                },
+                {
+                    "name": "manager_token_id",
+                    "type": "uint64"
+                },
+                {
+                    "name": "content_id",
+                    "type": "uint64"
                 }
             ]
         },
@@ -501,12 +513,12 @@
             "base": "",
             "fields": [
                 {
-                    "name": "manager",
-                    "type": "name"
-                },
-                {
                     "name": "sym",
                     "type": "symbol_code"
+                },
+                {
+                    "name": "manager_token_id",
+                    "type": "uint64"
                 },
                 {
                     "name": "offer_id",
@@ -571,16 +583,16 @@
                     "type": "uint64"
                 },
                 {
-                    "name": "manager_token_list",
+                    "name": "token_id_list",
                     "type": "uint64[]"
                 },
                 {
-                    "name": "ratio_list",
-                    "type": "uint64[]"
+                    "name": "weight_list",
+                    "type": "uint16[]"
                 },
                 {
-                    "name": "others_ratio",
-                    "type": "uint64"
+                    "name": "others_weight",
+                    "type": "uint16"
                 }
             ]
         },
@@ -772,8 +784,8 @@
             "ricardian_contract": ""
         },
         {
-            "name": "destroy",
-            "type": "destroy",
+            "name": "dropcontent",
+            "type": "dropcontent",
             "ricardian_contract": ""
         },
         {

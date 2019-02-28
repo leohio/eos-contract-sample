@@ -115,7 +115,9 @@ cleos push action toycashio123 setoffer '["mokemokecore", "TOY", "https://www.ge
 cleos get table toycashio123 TOY offer
 
 # オファーを受け入れ、コンテンツに昇格させる
-cleos push action toycashio123 acceptoffer '["leohioleohio", "TOY", 0]' -p leohioleohio@active
+# このとき community_manager_table に従って報酬が分配される
+# 第1引数はマネージャー権限のある token ID を指定
+cleos push action toycashio123 acceptoffer '[0, "TOY", 0]' -p leohioleohio@active
 
 cleos get table toycashio123 TOY offer
 cleos get table toycashio123 toycashio123 currency
@@ -123,7 +125,7 @@ cleos get table toycashio123 TOY contents
 cleos get table toycashio123 toycashio123 world
 
 # ID: 0 のコンテンツの PV 数を 1 増加させる
-cleos push action toycashio123 addpvcount '[[["PCS", 0, 1}, ["PCS", 1, 1]]]' -p toycashio123@active
+cleos push action toycashio123 addpvcount '[[["PCS", 0, 1], ["PCS", 1, 1]]]' -p toycashio123@active
 
 cleos get table toycashio123 toycashio123 currency
 cleos get table toycashio123 TOY contents
@@ -139,11 +141,16 @@ cleos get table toycashio123 toycashio123 world
 # id: 2 のトークンを持っている人は 1/4
 # その他のトークンを持っている人で残りの 0/4 を均等に分配
 # トークン 0, 1, 2 以外は発行されていないならば、残りはコントラクトがもらう
-cleos push action toycashio123 setmanager '["TOY", 0, [0, 1, 2], [2, 1, 1], 0]' -p leohioleohio@active
+cleos push action toycashio123 setmanager '["TOY", 0, [0, 1, 2], [5, 5, 5], 1]' -p leohioleohio@active
 
 # デポジットした EOS の引き出し
 cleos push action toycashio123 withdraw '["leohioleohio", "0.0001 EOS", "withdraw"]' -p leohioleohio@active
 
 # offer を拒否する
-cleos push action toycashio123 rejectoffer '["leohioleohio", "TOY", 0, "The reason why I rejected this offer is because of hogehoge"]' -p leohioleohio@active
+# 第1引数はマネージャー権限のある token ID を指定
+cleos push action toycashio123 rejectoffer '[0, "TOY", 0, "The reason why I rejected this offer is because of hogehoge"]' -p leohioleohio@active
+
+# コンテンツを取り下げる（いったん取り下げたら元に戻せません）
+# 第1引数はマネージャー権限のある token ID を指定
+cleos push action toycashio123 dropcontent '[0, "TOY", 0]' -p leohioleohio@active
 ```
