@@ -117,7 +117,7 @@ cleos get table toycashio123 TOY offer
 # オファーを受け入れ、コンテンツに昇格させる
 # このとき community_manager_table に従って報酬が分配される
 # 第1引数はマネージャー権限のある token ID を指定
-cleos push action toycashio123 acceptoffer '[0, "TOY", 0]' -p leohioleohio@active
+cleos push action toycashio123 acceptoffer '["TOY", 0, 0]' -p leohioleohio@active
 
 cleos get table toycashio123 TOY offer
 cleos get table toycashio123 toycashio123 currency
@@ -148,9 +148,9 @@ cleos push action toycashio123 withdraw '["leohioleohio", "0.0001 EOS", "withdra
 
 # offer を拒否する
 # 第1引数はマネージャー権限のある token ID を指定
-cleos push action toycashio123 rejectoffer '[0, "TOY", 0, "The reason why I rejected this offer is because of hogehoge"]' -p leohioleohio@active
+cleos push action toycashio123 rejectoffer '["TOY", 0, 0, "The reason why I rejected this offer is because of hogehoge"]' -p leohioleohio@active
 
 # コンテンツを取り下げる（いったん取り下げたら元に戻せません）
 # 第1引数はマネージャー権限のある token ID を指定
-cleos push action toycashio123 dropcontent '[0, "TOY", 0]' -p leohioleohio@active
+cleos push action toycashio123 dropcontent '["TOY", 0, 0]' -p leohioleohio@active
 ```
