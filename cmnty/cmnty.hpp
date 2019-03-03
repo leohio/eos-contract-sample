@@ -2,6 +2,7 @@
 #include <eosiolib/asset.hpp> /* asset, symbol */
 // #include <eosiolib/crypto.h> /* assert_recover_key */
 #include <eosiolib/action.hpp> /* unack_action_data, require_recipent, require_auth, action */
+#include "exchange_state.cpp" /* rammarket struct, convert */
 
 using namespace eosio;
 using std::string;
@@ -29,49 +30,6 @@ class [[eosio::contract]] cmnty : public eosio::contract {
             //         data.active = 1;
             //     });
             // }
-
-            // uint64_t PCS = symbol_code("PCS").raw();
-            // uint64_t TOY = symbol_code("TOY").raw();
-            // auto& pcs_data = currency_table.get( PCS, "error" );
-            // currency_table.erase( pcs_data );
-            // auto& toy_data = currency_table.get( TOY, "error" );
-            // currency_table.erase( toy_data );
-
-            // community_manager_index pcs_manager_table( _self, PCS );
-            // auto& pcs0 = pcs_manager_table.get( 0, "error" );
-            // pcs_manager_table.erase( pcs0 );
-            // auto& pcs1 = pcs_manager_table.get( 1, "error" );
-            // pcs_manager_table.erase( pcs1 );
-            // auto& pcs2 = pcs_manager_table.get( 2, "error" );
-            // pcs_manager_table.erase( pcs2 );
-
-            // community_manager_index toy_manager_table( _self, TOY );
-            // auto& toy0 = toy_manager_table.get( 0, "error" );
-            // toy_manager_table.erase( toy0 );
-
-            // currency_table.modify( pcs_data, _self, [&]( auto& data ) {
-            //     data.numofmanager = 3;
-            // });
-            //
-            // currency_table.emplace( _self, [&]( auto& data ) {
-            //     data.supply = asset{ 10, symbol("TOY", 0) };
-            //     data.issuer = name("leohioleohio");
-            //     data.established = 1550909996000000ll;
-            //     data.borderprice = asset{ 0, symbol("EOS", 4) };
-            //     data.pvcount = 0;
-            //     data.numofmanager = 1;
-            //     data.others_reward_weight = 0;
-            //     data.sum_of_reward_weight = 1;
-            //     data.active = 1;
-            // });
-            // pcs_manager_table.emplace( _self, [&]( auto& data ) {
-            //     data.token_id = 0;
-            //     data.weight = 1;
-            // });
-            // toy_manager_table.emplace( _self, [&]( auto& data ) {
-            //     data.token_id = 0;
-            //     data.weight = 1;
-            // });
         }
 
         /**
@@ -92,7 +50,8 @@ class [[eosio::contract]] cmnty : public eosio::contract {
 	    [[eosio::action]] void     transfer( name from, name to, symbol_code sym, string memo );
         [[eosio::action]] void     burnbyid( symbol_code sym, uint64_t token_id );
         [[eosio::action]] void         burn( name owner, asset quantity );
-        [[eosio::action]] void   refleshkey( symbol_code sym, uint64_t token_id, capi_public_key subkey );
+        [[eosio::action]] void   refreshkey( symbol_code sym, uint64_t token_id, capi_public_key subkey );
+        [[eosio::action]] void   refleshkey( symbol_code sym, uint64_t token_id, capi_public_key subkey ); // スペルミス
         // [[eosio::action]] void         lock( name claimer, uint64_t token_id, string data, capi_signature sig );
         [[eosio::action]] void addsellobyid( symbol_code sym, uint64_t token_id, asset price, string memo );
         [[eosio::action]] void addsellorder( name seller, asset quantity, asset price, string memo );
@@ -102,14 +61,16 @@ class [[eosio::contract]] cmnty : public eosio::contract {
         // [[eosio::action]] void   sendandbuy( name buyer, symbol_code sym, uint64_t token_id, capi_public_key subkey, string memo );
         [[eosio::action]] void cancelsobyid( symbol_code sym, uint64_t token_id );
         [[eosio::action]] void  cancelsello( name seller, asset quantity );
-        [[eosio::action]] void cancelsoburn( name seller, asset quantity );
+        // [[eosio::action]] void cancelsoburn( name seller, asset quantity );
         [[eosio::action]] void  addbuyorder( name buyer, symbol_code sym, asset price, string memo );
         [[eosio::action]] void  selltoorder( symbol_code sym, uint64_t token_id, uint64_t order_id, string memo );
-        [[eosio::action]] void cancelbobyid( name buyer, symbol_code sym, uint64_t order_id );
+        [[eosio::action]] void cancelbobyid( symbol_code sym, uint64_t order_id );
+        [[eosio::action]] void   cancelbuyo( name buyer, asset quantity );
         [[eosio::action]] void   setmanager( symbol_code sym, uint64_t manager_token_id, vector<uint64_t> token_id_list, vector<uint16_t> weight_list, uint16_t others_weight );
         [[eosio::action]] void     withdraw( name user, asset value, string memo );
-        [[eosio::action]] void     setoffer( name provider, symbol_code sym, string uri, asset price, string memo );
+        [[eosio::action]] void     setoffer( name provider, symbol_code sym, string uri, string short_title, asset price, string memo );
         [[eosio::action]] void  acceptoffer( symbol_code sym, uint64_t manager_token_id, uint64_t offer_id );
+        [[eosio::action]] void contentsname( symbol_code sym, uint64_t contents_id, string short_title );
         [[eosio::action]] void  rejectoffer( symbol_code sym, uint64_t manager_token_id, uint64_t offer_id, string memo );
         [[eosio::action]] void  removeoffer( name provider, symbol_code sym, uint64_t offer_id );
         [[eosio::action]] void   addpvcount( vector<pv_data_str> pv_data_list );
@@ -117,6 +78,7 @@ class [[eosio::contract]] cmnty : public eosio::contract {
         // [[eosio::action]] void  stopcontent( name manager, uint64_t content_id );
         // [[eosio::action]] void startcontent( name manager, uint64_t content_id );
         [[eosio::action]] void  dropcontent( symbol_code sym, uint64_t manager_token_id, uint64_t content_id );
+        [[eosio::action]] void updatebprice( symbol_code sym );
         // [[eosio::action]] void  resetpvrate();
         // [[eosio::action]] void deletepvrate( uint64_t timestamp );
         [[eosio::action]] void      moveeos( name from, name to, asset quantity, string memo );
@@ -147,7 +109,6 @@ class [[eosio::contract]] cmnty : public eosio::contract {
             asset borderprice;
             uint64_t pvcount; // community pv count
             uint64_t numofmanager;
-            // float_t othersratio;
             uint64_t sum_of_reward_weight;
             uint16_t others_reward_weight;
             uint8_t active;
@@ -210,6 +171,7 @@ class [[eosio::contract]] cmnty : public eosio::contract {
             asset price;
             name provider;
             string uri;
+            string short_title;
 
             uint64_t primary_key() const { return id; }
             uint64_t get_price() const { return static_cast<uint64_t>(price.amount); }
@@ -222,6 +184,7 @@ class [[eosio::contract]] cmnty : public eosio::contract {
             asset price; // offer price
             name provider;
             string uri;
+            string short_title;
             uint64_t pvcount;
             uint64_t accepted; // acceptoffer 時の timestamp
             uint8_t active;
@@ -322,7 +285,7 @@ class [[eosio::contract]] cmnty : public eosio::contract {
         void _sub_buy_order( name to, symbol_code sym, uint64_t order_id );
         void _update_pv_rate( symbol_code sym, uint64_t timestamp, asset new_offer_price );
         void _add_pv_count( symbol_code sym, uint64_t contents_id, uint64_t pv_count );
-        void _add_contents( name ram_payer, symbol_code sym, asset price, name provider, string uri, uint64_t timestamp );
+        void _add_contents( name ram_payer, symbol_code sym, asset price, name provider, string uri, string short_title, uint64_t timestamp );
         void _add_balance( name owner, asset quantity, name ram_payer );
         void _sub_balance( name owner, asset quantity );
         void _add_supply( asset quantity );
@@ -341,8 +304,11 @@ class [[eosio::contract]] cmnty : public eosio::contract {
 
         uint64_t find_own_token( name owner, symbol_code sym );
         uint64_t find_own_sell_order( name owner, symbol_code sym );
+        uint64_t find_own_buy_order( name owner, symbol_code sym );
+        bool find_offer_by_uri( symbol_code sym, string uri );
+        bool find_offer_by_title( symbol_code sym, string short_title );
         bool find_contents_by_uri( symbol_code sym, string uri );
-        // uint64_t find_offer_by_uri( symbol_code sym, string uri );
+        bool find_contents_by_title( symbol_code sym, string short_title );
         // uint64_t get_global_pv_count();
         asset get_cmnty_offer_reward( symbol_code sym, uint64_t ago );
         asset get_border_price( symbol_code sym );
@@ -352,4 +318,5 @@ class [[eosio::contract]] cmnty : public eosio::contract {
         /// Others
 
         vector<string> split_by_space( string memo );
+        asset ram_to_eos( uint32_t bytes );
 };

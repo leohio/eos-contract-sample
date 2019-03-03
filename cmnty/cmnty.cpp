@@ -147,7 +147,7 @@ void cmnty::burn( name owner, asset quantity ) {
 }
 
 /// subkey を変更し lock 解除を行う
-void cmnty::refleshkey( symbol_code sym, uint64_t token_id, capi_public_key subkey ) {
+void cmnty::refreshkey( symbol_code sym, uint64_t token_id, capi_public_key subkey ) {
     token_index token_table( get_self(), sym.raw() );
     auto& target_token = token_table.get( token_id, "token with id does not exist" );
     name owner = target_token.owner;
@@ -155,6 +155,11 @@ void cmnty::refleshkey( symbol_code sym, uint64_t token_id, capi_public_key subk
     eosio_assert( owner != get_self(), "does not burn token by contract account" );
 
     _set_subkey( owner, sym, token_id, subkey );
+}
+
+// スペルミス
+void cmnty::refleshkey( symbol_code sym, uint64_t token_id, capi_public_key subkey ) {
+    refreshkey( sym, token_id, subkey );
 }
 
 // void cmnty::lock( name claimer, symbol_code sym, uint64_t token_id, string data, capi_signature sig ) {
@@ -295,7 +300,7 @@ void cmnty::cancelsobyid( symbol_code sym, uint64_t token_id ) {
 /// cancel sell order
 void cmnty::cancelsello( name seller, asset quantity ) {
     require_auth( seller );
-    eosio_assert( seller != get_self(), "does not burn token by contract account" );
+    eosio_assert( seller != get_self(), "does not cancel sell order by contract account" );
 
     assert_positive_quantity_of_nft( quantity );
 
@@ -311,23 +316,23 @@ void cmnty::cancelsello( name seller, asset quantity ) {
 }
 
 /// cancel sell order and burn its token
-void cmnty::cancelsoburn( name seller, asset quantity ) {
-    require_auth( seller );
-    eosio_assert( seller != get_self(), "does not burn token by contract account" );
-
-    assert_positive_quantity_of_nft( quantity );
-
-    /// Ensure currency has been created
-    symbol_code sym = quantity.symbol.code();
-    auto& currency_data = currency_table.get( sym.raw(), "token with symbol does not exist" );
-
-    uint64_t token_id;
-    for ( uint64_t i = 0; i != quantity.amount; ++i ) {
-        token_id = find_own_sell_order( seller, sym );
-        cancelsobyid( sym, token_id );
-        burnbyid( sym, token_id );
-    }
-}
+// void cmnty::cancelsoburn( name seller, asset quantity ) {
+//     require_auth( seller );
+//     eosio_assert( seller != get_self(), "does not burn token by contract account" );
+//
+//     assert_positive_quantity_of_nft( quantity );
+//
+//     /// Ensure currency has been created
+//     symbol_code sym = quantity.symbol.code();
+//     auto& currency_data = currency_table.get( sym.raw(), "token with symbol does not exist" );
+//
+//     uint64_t token_id;
+//     for ( uint64_t i = 0; i != quantity.amount; ++i ) {
+//         token_id = find_own_sell_order( seller, sym );
+//         cancelsobyid( sym, token_id );
+//         burnbyid( sym, token_id );
+//     }
+// }
 
 void cmnty::addbuyorder( name buyer, symbol_code sym, asset price, string memo ) {
     require_auth( buyer );
@@ -369,15 +374,33 @@ void cmnty::selltoorder( symbol_code sym, uint64_t token_id, uint64_t order_id, 
 }
 
 /// cancel buy order by ID
-void cmnty::cancelbobyid( name buyer, symbol_code sym, uint64_t order_id ) {
-    require_auth( buyer );
-
+void cmnty::cancelbobyid( symbol_code sym, uint64_t order_id ) {
     buy_order_index buy_order_table( get_self(), sym.raw() );
     auto& buy_order_data = buy_order_table.get( order_id, "the buy order does not exist" );
-    eosio_assert( buy_order_data.user == buyer, "this is not your buy order" );
+    name buyer = buy_order_data.user;
+
+    require_auth( buyer );
 
     /// deposit: _self -> buyer
     _sub_buy_order( buyer, sym, order_id );
+}
+
+/// cancel buy order
+void cmnty::cancelbuyo( name buyer, asset quantity ) {
+    require_auth( buyer );
+    eosio_assert( buyer != get_self(), "does not cancel buy order by contract account" );
+
+    assert_positive_quantity_of_nft( quantity );
+
+    /// Ensure currency has been created
+    symbol_code sym = quantity.symbol.code();
+    auto& currency_data = currency_table.get( sym.raw(), "token with symbol does not exist" );
+
+    uint64_t order_id;
+    for ( uint64_t i = 0; i != quantity.amount; ++i ) {
+        order_id = find_own_buy_order( buyer, sym );
+        cancelbobyid( sym, order_id );
+    }
 }
 
 /// manager 権限を剥奪したいときは、 ratio を 0 にする
@@ -475,11 +498,12 @@ void cmnty::moveeos( name from, name to, asset quantity, string memo ) {
             symbol_code sym = symbol_code( sbc[2] );
             string message = "add sell order in moveeos of " + contract_name;
             addbuyorder( from, sym, quantity, message );
-        } else if ( sbc[0] == contract_name && sbc[1] == "setoffer" && sbc.size() == 4 ) {
+        } else if ( sbc[0] == contract_name && sbc[1] == "setoffer" && sbc.size() == 5 ) {
             symbol_code sym = symbol_code( sbc[2] );
             string uri = sbc[3];
+            string short_title = sbc[4];
             string message = "set offer in moveeos of " + contract_name;
-            setoffer( from, sym, uri, quantity, message );
+            setoffer( from, sym, uri, short_title, quantity, message );
         }
     } else if ( from == get_self() && to != get_self() ) {
         /// 預金総額を取得
@@ -510,7 +534,7 @@ void cmnty::withdraw( name user, asset value, string memo ) {
     _transfer_eos( user, value, message );
 }
 
-void cmnty::setoffer( name provider, symbol_code sym, string uri, asset price, string memo ) {
+void cmnty::setoffer( name provider, symbol_code sym, string uri, string short_title, asset price, string memo ) {
     require_auth( provider );
 
     /// Ensure valid symbol
@@ -518,11 +542,14 @@ void cmnty::setoffer( name provider, symbol_code sym, string uri, asset price, s
     auto& currency_data = currency_table.get( sym.raw(), "token with symbol does not exist." );
 
     eosio_assert( uri.size() <= 256, "uri has more than 256 bytes" );
+    eosio_assert( short_title.size() <= 64, "short title more than 64 bytes");
 
     assert_non_negative_eos( price );
 
-    bool found = find_contents_by_uri( sym, uri );
-    eosio_assert( !found, "already accepted this offer" );
+    eosio_assert( !find_offer_by_uri( sym, uri ), "already proposed this offer" );
+    eosio_assert( !find_offer_by_title( sym, short_title ), "already proposed this title" );
+    eosio_assert( !find_contents_by_uri( sym, uri ), "already existed the uri" );
+    eosio_assert( !find_contents_by_title( sym, short_title ), "already existed the title" );
 
     /// オファー料金が前もってコントラクトに振り込まれているか確認
     if ( price.amount > 0 ) {
@@ -541,6 +568,7 @@ void cmnty::setoffer( name provider, symbol_code sym, string uri, asset price, s
         data.price = price;
         data.provider = provider;
         data.uri = uri;
+        data.short_title = short_title;
     });
 }
 
@@ -563,9 +591,7 @@ void cmnty::acceptoffer( symbol_code sym, uint64_t manager_token_id, uint64_t of
     asset price = offer_data.price;
     name provider = offer_data.provider;
     string uri = offer_data.uri;
-
-    bool found = find_contents_by_uri( sym, uri );
-    eosio_assert( !found, "already accepted this offer" );
+    string short_title = offer_data.short_title;
 
     assert_non_negative_eos( price );
     eosio_assert( uri.size() <= 256, "uri has more than 256 bytes" );
@@ -575,7 +601,7 @@ void cmnty::acceptoffer( symbol_code sym, uint64_t manager_token_id, uint64_t of
 
     uint64_t now = current_time();
 
-    _add_contents( manager, sym, price, provider, uri, now );
+    _add_contents( manager, sym, price, provider, uri, short_title, now );
     _update_pv_rate( sym, now, price );
 
     require_recipient( provider );
@@ -612,6 +638,25 @@ void cmnty::acceptoffer( symbol_code sym, uint64_t manager_token_id, uint64_t of
                 }
             }
         }
+    }
+}
+
+void cmnty::contentsname( symbol_code sym, uint64_t contents_id, string short_title ) {
+    eosio_assert( sym.is_valid(), "invalid symbol name" );
+    auto& currency_data = currency_table.get( sym.raw(), "currency info with the symbol does not exist." );
+
+    contents_index contents_table( get_self(), sym.raw() );
+    auto& contents_data = contents_table.get( contents_id, "the contents does not exist" );
+    eosio_assert( short_title.size() <= 64, "short title more than 64 bytes");
+
+    require_auth( contents_data.provider );
+
+    if ( contents_data.short_title != short_title ) {
+        contents_table.erase( contents_data );
+        contents_table.emplace( contents_data.provider, [&]( auto& data ) {
+            data = contents_data;
+            data.short_title = short_title;
+        });
     }
 }
 
@@ -959,6 +1004,9 @@ void cmnty::_update_pv_rate( symbol_code sym, uint64_t timestamp, asset new_offe
     float_t last_pv_rate = global_data.pvrate;
     float_t pv_rate = last_pv_rate;
 
+    // pvrate を維持するためには new_offer_price.amount が last_pv_rate * cmnty_pv_count である必要がある。
+    // これより低い金額での offer を出されるこは、そのコミュニティが期待されていないことを示し、
+    // 逆に、これより高い金額での offer を出されることは、そのコミュニティが期待されていることを示す。
     if ( global_pv_count + cmnty_pv_count != 0 ) {
         pv_rate = (last_pv_rate * global_pv_count + new_offer_price.amount) / (global_pv_count + cmnty_pv_count);
     }
@@ -1024,7 +1072,7 @@ asset cmnty::get_border_price( symbol_code sym ) {
     /// 今までの PV の合計
     uint64_t total_pv_count = currency_data.pvcount;
 
-    float_t others_ratio = static_cast<float_t>(currency_data.others_reward_weight / currency_data.sum_of_reward_weight);
+    float_t others_ratio = static_cast<float_t>(currency_data.others_reward_weight) / currency_data.sum_of_reward_weight;
     uint64_t num_of_owner = static_cast<uint64_t>(currency_data.supply.amount);
     uint64_t number_of_others = num_of_owner - currency_data.numofmanager;
     uint64_t an_year = 365ll*24*60*60*1000000;
@@ -1043,7 +1091,7 @@ asset cmnty::get_border_price( symbol_code sym ) {
     return border_price;
 }
 
-void cmnty::_add_contents( name ram_payer, symbol_code sym, asset price, name provider, string uri, uint64_t timestamp ) {
+void cmnty::_add_contents( name ram_payer, symbol_code sym, asset price, name provider, string uri, string short_title, uint64_t timestamp ) {
     assert_non_negative_eos( price );
 
     contents_index contents_table( get_self(), sym.raw() );
@@ -1056,6 +1104,7 @@ void cmnty::_add_contents( name ram_payer, symbol_code sym, asset price, name pr
         data.uri = uri;
         data.pvcount = 0;
         data.accepted = timestamp;
+        data.short_title = short_title;
         data.active = 1;
     });
 
@@ -1260,20 +1309,68 @@ uint64_t cmnty::find_own_token( name owner, symbol_code sym ) {
 
 uint64_t cmnty::find_own_sell_order( name owner, symbol_code sym ) {
     sell_order_index sell_order_table( get_self(), sym.raw() );
+    auto table = sell_order_table.get_index<name("byowner")>();
+    auto it = table.lower_bound( owner.value );
+    eosio_assert( it->user == owner, "sell order is not found or is not owned by account" );
+
+    uint64_t token_id = it->id;
+    return token_id;
+}
+
+uint64_t cmnty::find_own_buy_order( name owner, symbol_code sym ) {
+    buy_order_index buy_order_table( get_self(), sym.raw() );
+    auto table = buy_order_table.get_index<name("byowner")>();
+    auto it = table.lower_bound( owner.value );
+    eosio_assert( it->user == owner, "buy order is not found or is not owned by account" );
+
+    uint64_t order_id = it->id;
+    return order_id;
+}
+
+bool cmnty::find_offer_by_uri( symbol_code sym, string uri ) {
+    /// Ensure valid symbol
+    eosio_assert( sym.is_valid(), "invalid symbol name" );
 
     bool found = false;
-    uint64_t token_id = 0;
-    for ( auto it = sell_order_table.begin(); it != sell_order_table.end(); ++it ) {
-        if ( it->user == owner ) {
-            token_id = it->id;
+    uint64_t offer_id = 0;
+
+    /// uri でテーブルを検索
+    auto& currency_data = currency_table.get( sym.raw(), "token with symbol does not exist." );
+
+    offer_index offer_table( get_self(), sym.raw() );
+    auto it = offer_table.begin();
+    for (; it != offer_table.end(); ++it ) {
+        if ( it->uri == uri ) {
+            offer_id = it->id;
             found = true;
             break;
         }
     }
 
-    eosio_assert( found, "sell order is not found or is not owned by account" );
+    return found;
+}
 
-    return token_id;
+bool cmnty::find_offer_by_title( symbol_code sym, string short_title ) {
+    /// Ensure valid symbol
+    eosio_assert( sym.is_valid(), "invalid symbol name" );
+
+    bool found = false;
+    uint64_t offer_id = 0;
+
+    /// uri でテーブルを検索
+    auto& currency_data = currency_table.get( sym.raw(), "token with symbol does not exist." );
+
+    offer_index offer_table( get_self(), sym.raw() );
+    auto it = offer_table.begin();
+    for (; it != offer_table.end(); ++it ) {
+        if ( it->short_title == short_title ) {
+            offer_id = it->id;
+            found = true;
+            break;
+        }
+    }
+
+    return found;
 }
 
 bool cmnty::find_contents_by_uri( symbol_code sym, string uri ) {
@@ -1281,7 +1378,7 @@ bool cmnty::find_contents_by_uri( symbol_code sym, string uri ) {
     eosio_assert( sym.is_valid(), "invalid symbol name" );
 
     bool found = false;
-    uint64_t uri_id = 0;
+    uint64_t contents_id = 0;
 
     /// uri でテーブルを検索
     auto& currency_data = currency_table.get( sym.raw(), "token with symbol does not exist." );
@@ -1290,7 +1387,30 @@ bool cmnty::find_contents_by_uri( symbol_code sym, string uri ) {
     auto it = contents_table.begin();
     for (; it != contents_table.end(); ++it ) {
         if ( it->uri == uri ) {
-            uri_id = it->id;
+            contents_id = it->id;
+            found = true;
+            break;
+        }
+    }
+
+    return found;
+}
+
+bool cmnty::find_contents_by_title( symbol_code sym, string short_title ) {
+    /// Ensure valid symbol
+    eosio_assert( sym.is_valid(), "invalid symbol name" );
+
+    bool found = false;
+    uint64_t contents_id = 0;
+
+    /// uri でテーブルを検索
+    auto& currency_data = currency_table.get( sym.raw(), "token with symbol does not exist." );
+
+    contents_index contents_table( get_self(), sym.raw() );
+    auto it = contents_table.begin();
+    for (; it != contents_table.end(); ++it ) {
+        if ( it->short_title == short_title ) {
+            contents_id = it->id;
             found = true;
             break;
         }
@@ -1350,6 +1470,28 @@ vector<string> cmnty::split_by_space( string str ) {
     return split_list;
 }
 
+asset cmnty::ram_to_eos( uint32_t bytes ) {
+    // cleos get table eosio eosio rammarket
+    eosiosystem::rammarket market( name("eosio"), name("eosio").value );
+
+    // find RAMCORE market?
+    auto itr = market.find( symbol( "RAMCORE", 4 ).code().raw() );
+
+    // do not pass this assert
+    eosio_assert( itr != market.end(), "RAMCORE market not found" );
+
+    // ???
+    auto tmp = *itr;
+    asset rambytes = asset( bytes, symbol( "RAM", 0 ) );
+    const auto amount = tmp.convert( rambytes, symbol( "EOS", 4 ) );
+
+    return amount;
+}
+
+void cmnty::updatebprice( symbol_code sym ) {
+    get_border_price( sym );
+}
+
 // void cmnty::resetpvrate() {
 //     require_auth( get_self() );
 //
@@ -1384,25 +1526,29 @@ extern "C" {
                    (transfer)
                    (burnbyid)
                    // (burn)
-                   (refleshkey)
+                   (refreshkey)
+                   (refleshkey) // スペルミス
                    (addsellobyid)
                    // (addsellorder)
                    // (issueandsell)
                    (buyfromorder)
                    (cancelsobyid)
-                   // (cancelsello)
+                   (cancelsello)
                    // (cancelsoburn)
                    (addbuyorder)
                    (selltoorder)
                    (cancelbobyid)
+                   (cancelbuyo)
                    (setmanager)
                    (withdraw)
                    (setoffer)
                    (acceptoffer)
+                   (contentsname)
                    (rejectoffer)
                    (removeoffer)
                    (addpvcount)
                    (dropcontent)
+                   (updatebprice)
                );
             }
         }

@@ -1,5 +1,5 @@
 {
-    "____comment": "This file was generated with eosio-abigen. DO NOT EDIT Fri Mar  1 02:00:54 2019",
+    "____comment": "This file was generated with eosio-abigen. DO NOT EDIT Mon Mar  4 02:26:46 2019",
     "version": "eosio::abi/1.0",
     "structs": [
         {
@@ -161,10 +161,6 @@
             "base": "",
             "fields": [
                 {
-                    "name": "buyer",
-                    "type": "name"
-                },
-                {
                     "name": "sym",
                     "type": "symbol_code"
                 },
@@ -175,11 +171,11 @@
             ]
         },
         {
-            "name": "cancelsello",
+            "name": "cancelbuyo",
             "base": "",
             "fields": [
                 {
-                    "name": "seller",
+                    "name": "buyer",
                     "type": "name"
                 },
                 {
@@ -189,7 +185,7 @@
             ]
         },
         {
-            "name": "cancelsoburn",
+            "name": "cancelsello",
             "base": "",
             "fields": [
                 {
@@ -251,6 +247,10 @@
                     "type": "string"
                 },
                 {
+                    "name": "short_title",
+                    "type": "string"
+                },
+                {
                     "name": "pvcount",
                     "type": "uint64"
                 },
@@ -261,6 +261,24 @@
                 {
                     "name": "active",
                     "type": "uint8"
+                }
+            ]
+        },
+        {
+            "name": "contentsname",
+            "base": "",
+            "fields": [
+                {
+                    "name": "sym",
+                    "type": "symbol_code"
+                },
+                {
+                    "name": "contents_id",
+                    "type": "uint64"
+                },
+                {
+                    "name": "short_title",
+                    "type": "string"
                 }
             ]
         },
@@ -437,6 +455,10 @@
                 {
                     "name": "uri",
                     "type": "string"
+                },
+                {
+                    "name": "short_title",
+                    "type": "string"
                 }
             ]
         },
@@ -492,6 +514,24 @@
         },
         {
             "name": "refleshkey",
+            "base": "",
+            "fields": [
+                {
+                    "name": "sym",
+                    "type": "symbol_code"
+                },
+                {
+                    "name": "token_id",
+                    "type": "uint64"
+                },
+                {
+                    "name": "subkey",
+                    "type": "public_key"
+                }
+            ]
+        },
+        {
+            "name": "refreshkey",
             "base": "",
             "fields": [
                 {
@@ -613,6 +653,10 @@
                     "type": "string"
                 },
                 {
+                    "name": "short_title",
+                    "type": "string"
+                },
+                {
                     "name": "price",
                     "type": "asset"
                 },
@@ -693,6 +737,16 @@
             ]
         },
         {
+            "name": "updatebprice",
+            "base": "",
+            "fields": [
+                {
+                    "name": "sym",
+                    "type": "symbol_code"
+                }
+            ]
+        },
+        {
             "name": "withdraw",
             "base": "",
             "fields": [
@@ -764,18 +818,23 @@
             "ricardian_contract": ""
         },
         {
+            "name": "cancelbuyo",
+            "type": "cancelbuyo",
+            "ricardian_contract": ""
+        },
+        {
             "name": "cancelsello",
             "type": "cancelsello",
             "ricardian_contract": ""
         },
         {
-            "name": "cancelsoburn",
-            "type": "cancelsoburn",
+            "name": "cancelsobyid",
+            "type": "cancelsobyid",
             "ricardian_contract": ""
         },
         {
-            "name": "cancelsobyid",
-            "type": "cancelsobyid",
+            "name": "contentsname",
+            "type": "contentsname",
             "ricardian_contract": ""
         },
         {
@@ -806,6 +865,11 @@
         {
             "name": "refleshkey",
             "type": "refleshkey",
+            "ricardian_contract": ""
+        },
+        {
+            "name": "refreshkey",
+            "type": "refreshkey",
             "ricardian_contract": ""
         },
         {
@@ -841,6 +905,11 @@
         {
             "name": "transferbyid",
             "type": "transferbyid",
+            "ricardian_contract": ""
+        },
+        {
+            "name": "updatebprice",
+            "type": "updatebprice",
             "ricardian_contract": ""
         },
         {

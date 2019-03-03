@@ -27,6 +27,9 @@ cmnt/nodeos.log
 cmnty/compile.sh
 cmnty/set_contract.sh
 cmnty/nodeos.log
+cmnty/test/node_modules
+cmnty/test/cleosWalletPrivateKeys.json
+cmnty/test/package-lock.json
 
 # helpaccount
 
