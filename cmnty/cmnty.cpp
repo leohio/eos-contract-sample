@@ -1075,10 +1075,10 @@ asset cmnty::get_border_price( symbol_code sym ) {
     float_t others_ratio = static_cast<float_t>(currency_data.others_reward_weight) / currency_data.sum_of_reward_weight;
     uint64_t num_of_owner = static_cast<uint64_t>(currency_data.supply.amount);
     uint64_t number_of_others = num_of_owner - currency_data.numofmanager;
-    uint64_t an_year = 365ll*24*60*60*1000000;
+    // an_year = 365ll*24*60*60*1000000;
 
     int64_t expected_offer_in_a_year = total_offer_reward_in_a_month.amount * 12 * others_ratio / number_of_others;
-    uint64_t expected_pv_in_a_year = total_pv_count * last_pv_rate * an_year / (now - currency_data.established);
+    uint64_t expected_pv_in_a_year = total_pv_count * last_pv_rate * a_month / (now - currency_data.established);
 
     int64_t border_price_amount = expected_offer_in_a_year + expected_pv_in_a_year;
     eosio_assert( border_price_amount >= expected_offer_in_a_year, "occur overflow" );
